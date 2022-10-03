@@ -1,0 +1,21 @@
+[
+  {
+    "eoj": "0x013009",
+    "elProperties": [
+      {
+        "epc": "0x87",
+        "propertyMap": {
+          "get": true,
+          "set": true,
+          "inf": false
+        },
+        "responseTime": {
+          "get": 2000,
+          "set": 3000,
+          "inf": 4000
+        },
+        "settingTime": 3000
+      }
+    ]
+  }
+]

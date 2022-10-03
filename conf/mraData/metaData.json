@@ -1,0 +1,13 @@
+{
+  "metaData": {
+    "date": "2022-06-01",
+    "release": "P",
+    "dataVersion": "1.1.0",
+    "formatVersion": "1.1.0",
+    "note": {
+      "ja": "Machine Readable Appendix V1.1.0",
+      "en": "Machine Readable Appendix V1.1.0"
+    },
+    "Copyright": "(C) 2021 Kanagawa Institute of Technology, ECHONET CONSORTIUM"
+  }
+}

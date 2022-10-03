@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<title>ECHONET Lite Emulator</title>
+	<link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/lib/fontawesome-free/css/all.css">
+	<link rel="stylesheet" href="elemu.css">
+</head>
+
+<body>
+	<div id="app">
+		<header>
+			<div class="navbar navbar-expand-md navbar-dark fixed-top bg-dark d-block">
+				<h1 class="d-inline-block">
+					<router-link to="/home">
+						<a class="navbar-brand">
+							<span v-if="lang === 'ja'">ECHONET Lite エミュレーター</span>
+							<span v-if="lang === 'en'">ECHONET Lite Emulator</span>
+						</a>
+					</router-link>
+				</h1>
+				<div class="d-inline-block float-right">
+					<!-- システム言語 -->
+					<select class="form-control-sm d-inline-block" v-model="lang" v-on:change="changeLang" v-if="lang === 'ja'">
+						<option value="ja">日本語 (Japanese)</option>
+						<option value="en">英語 (English)</option>
+					</select>
+					<select class="form-control-sm d-inline-block" v-model="lang" v-on:change="changeLang" v-if="lang === 'en'">
+						<option value="ja">Japanese</option>
+						<option value="en">English</option>
+					</select>
+					<!-- WebSocket コネクション状態-->
+					<a class="btn">
+						<i class="fas fa-link" style="color:#00DD00;" v-if="wsStatus === true" title="WebSocket active"></i>
+						<i class="fas fa-link" style="color:gray;" v-if="wsStatus === false" title="WebSocket inactive"></i>
+					</a>
+					<!-- デバイス電源状態 -->
+					<a class="btn" v-if="powerStatus === true" v-on:click="changePowerStatus(false)">
+						<i class="fas fa-power-off" style="color:#00DD00;"></i>
+					</a>
+					<a class="btn" v-if="powerStatus === false" v-on:click="changePowerStatus(true)">
+						<i class="fas fa-power-off" style="color: gray;"></i>
+					</a>
+					<!-- 設定ボタン -->
+					<router-link to="/conf">
+						<a class="btn" title="Configurations"><i class="fas fa-cog"></i></a>
+					</router-link>
+					<!-- ホームボタン -->
+					<router-link to="/home">
+						<a class="btn" title="Back to the home"><i class="fas fa-home"></i></a>
+					</router-link>
+				</div>
+			</div>
+		</header>
+
+		<main role="main" class="container">
+			<router-view></router-view>
+		</main>
+
+		<footer class="footer">
+			<div class="container">
+				<span v-if="lang === 'ja'">ECHONET Lite エミュレーター</span>
+				<span v-if="lang === 'en'">ECHONET Lite Emulator</span>
+			</div>
+		</footer>
+	</div>
+
+	<!-- Bootstrap -->
+	<script src="/lib/jquery-3.3.1.min.js"></script>
+	<script src="/lib/popper.min.js"></script>
+	<script src="/lib/bootstrap/js/bootstrap.min.js"></script>
+	<!-- Vue.js -->
+	<!--<script src="/lib/vue.min.js"></script>-->
+	<script src="/lib/vue.js"></script>
+	<script src="/lib/vue-router.min.js"></script>
+	<!-- El Emulator -->
+	<script src="/elemu-bootstrap-utils.js"></script>
+	<script src="/elemu-webapi.js"></script>
+	<script src="/elemu.js"></script>
+
+
+
+	<!-- =============================================== -->
+	<!-- テンプレート -->
+	<!-- =============================================== -->
+
+	<!-- 初期化画面 -->
+	<script type="text/template" id="tmpl-page-init">
+		<section>
+			<p>Now loading ...</p>
+		</section>
+	</script>
+
+	<!-- ホーム画面 -->
+	<script type="text/template" id="tmpl-page-home">
+		<div>
+			<eoj-panel></eoj-panel>
+			<remote-device-list></remote-device-list>
+			<send-packet></send-packet>
+			<packet-monitor></packet-monitor>
+		</div>
+	</script>
+
+
+	<!-- ホーム画面: デバイスオブジェクトインスタンス -->
+	<script type="text/template" id="tmpl-component-eoj-panel">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">デバイスオブジェクトインスタンス</span>
+						<span v-if="lang === 'en'">Device Object Instances</span>
+					</h2>
+					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#eoj-panel-body">
+						<i class="fas fa-plus" hidden></i>
+						<i class="fas fa-minus"></i>
+					</a>
+				</div>
+				<div class="card-body collapse show" id="eoj-panel-body">
+					<div class="form-group">
+						<button class="btn btn-sm btn-secondary" type="button" v-on:click="showAddEoj">
+							<i class="fas fa-plus-circle"></i>
+							<span v-if="lang === 'ja'">EOJ 新規登録</span>
+							<span v-if="lang === 'en'">Add a new EOJ</span>
+						</button>
+					</div>
+					<div class="form-group">
+						<div class="input-group input-group-sm">
+							<select class="form-control" id="eoj-panel-eoj-list" v-model="eoj" v-on:change="updateEoj">
+								<option v-for="d in eoj_list" v-bind:value="d.eoj">
+									0x{{ d.eoj }}:
+									<template v-if="lang === 'ja'">{{ d.className.ja }}<!-- (リリース {{ d.release }})--></template>
+									<template v-if="lang === 'en'">{{ d.className.en }}<!-- (Release {{ d.release }})--></template>
+								</option>
+							</select>
+
+							<div class="input-group-append">
+								<button class="btn btn-secondary" type="button" v-on:click="reloadEdt">
+									<i class="fas fa-sync-alt"></i>
+									<span v-if="lang === 'ja'">再読込</span>
+									<span v-if="lang === 'en'">Reload</span>
+								</button>
+							</div>
+
+							<div class="input-group-append">
+								<button class="btn btn-secondary" type="button" v-on:click="editEoj">
+									<i class="far fa-edit"></i>
+									<span v-if="lang === 'ja'">編集</span>
+									<span v-if="lang === 'en'">Edit</span>
+								</button>
+							</div>
+							<div class="input-group-append">
+								<button class="btn btn-secondary" type="button" v-on:click="deleteEoj">
+									<i class="far fa-trash-alt"></i>
+									<span v-if="lang === 'ja'">削除</span>
+									<span v-if="lang === 'en'">Delete</span>
+								</button>
+							</div>
+						</div>
+					</div>
+					<table class="table table-sm">
+						<tbody style="display: block; height: 400px; overflow-y: scroll;">
+							<tr v-for="e in epc_list">
+								<td>
+									<code class="hex nowrap">{{ e.epc }}</code>
+								</td>
+								<td>
+									<template v-if="e.propertyName">
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</template>
+								</td>
+								<td>
+									<span v-if="e.map.get" class="badge badge-success">Get</span>
+									<span v-else class="badge badge-secondary">Get</span>
+									<span v-if="e.map.set" class="badge badge-success">Set</span>
+									<span v-else class="badge badge-secondary">Set</span>
+									<span v-if="e.map.inf" class="badge badge-success">Inf</span>
+									<span v-else class="badge badge-secondary">Inf</span>
+								</td>
+								<td>
+									<router-link v-bind:to="'/editEdt/' + eoj + '/' + e.epc">
+										<i class="fas fa-edit"></i>
+									</router-link>
+								</td>
+								<td class="edt-detail">
+									<template v-if="e.edt">
+										<div>
+											<code class="hex truncate">{{ e.edt.hex }}</code>
+										</div>
+										<template v-if="e.edt.data">
+											<div v-if="e.edt.data.type === 'state'">
+												<template v-if="e.edt.data.state">
+													<span v-if="lang === 'ja'">{{ e.edt.data.state.ja }}</span>
+													<span v-if="lang === 'en'">{{ e.edt.data.state.en }}</span>
+												</template>
+											</div>
+											<div v-if="e.edt.data.type === 'number'">
+												<span>{{ e.edt.data.number.value}}</span>
+												<span v-if="e.edt.data.number.unit">{{ e.edt.data.number.unit }}</span>
+												<span v-if="e.edt.data.number.special">({{ e.edt.data.number.special }})</span>
+												<span v-if="e.edt.data.number.coefficient">
+													(
+													<span v-if="lang === 'ja'">係数:</span>
+													<span v-if="lang === 'en'">Coefficient:</span>
+													<template v-for="co in e.edt.data.number.coefficient">
+														<code class="coefficient">{{ co }}</code>
+													</template>
+													)
+												</span>
+											</div>
+											<div v-if="e.edt.data.type === 'level'">
+												<span>Level {{ e.edt.data.level }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'date-time'">
+												<span>{{ e.edt.data.dateTime }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'date'">
+												<span>{{ e.edt.data.date }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'time'">
+												<span>{{ e.edt.data.time }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'numericValue'">
+												<span>{{ e.edt.data.numericValue }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'raw'">
+												<div v-if="e.edt.data.propertyList">
+													<ul>
+														<li v-for="pd in e.edt.data.propertyList">
+															<code class="hex">{{ pd.epc }}</code> |
+															<template v-if="pd.propertyName">
+																<span v-if="lang === 'ja'">{{ pd.propertyName.ja }}</span>
+																<span v-if="lang === 'en'">{{ pd.propertyName.en }}</span>
+															</template>
+														</li>
+													</ul>
+												</div>
+												<div v-if="e.edt.data.manufacturerName">
+													<span v-if="lang === 'ja'">{{ e.edt.data.manufacturerName.ja }}</span>
+													<span v-if="lang === 'en'">{{ e.edt.data.manufacturerName.en }}</span>
+												</div>
+												<div v-if="e.edt.data.release">
+													{{ e.edt.data.release }}
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'bitmap'">
+												<div v-for="o in e.edt.data.bitmap">
+													<dl>
+														<dt>
+															<span v-if="lang === 'ja'">{{ o.descriptions.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.descriptions.en }}</span>
+														</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																<span v-if="lang === 'en'">{{ o.state.en }}</span>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'level'">
+																<span>Level {{ o.level }}</span>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'array'">
+												<div v-for="o of e.edt.data.array">
+													<div v-if="o.type === 'number'">
+														<span>{{ o.number.value }}</span>
+														<span v-if="o.number.unit">{{ o.number.unit }}</span>
+														<span v-if="o.number.coefficient">
+															(
+															<span v-if="lang === 'ja'">係数:</span>
+															<span v-if="lang === 'en'">Coefficient:</span>
+															<template v-for="co in o.number.coefficient">
+																<code class="coefficient">{{ co }}</code>
+															</template>
+															)
+														</span>
+													</div>
+													<div v-if="o.type === 'state'">
+														<template v-if="o.state">
+															<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.state.en }}</span>
+														</template>
+													</div>
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'object'">
+												<div v-for="o in e.edt.data.object">
+													<dl>
+														<dt>
+															<span v-if="lang === 'ja'">{{ o.elementName.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.elementName.en }}</span>
+														</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<template v-if="o.state">
+																	<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																	<span v-if="lang === 'en'">{{ o.state.en }}</span>
+																</template>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'date-time'">
+																<span>{{ o.dateTime }}</span>
+															</div>
+															<div v-if="o.type === 'date'">
+																<span>{{ o.date }}</span>
+															</div>
+															<div v-if="o.type === 'time'">
+																<span>{{ o.time }}</span>
+															</div>
+															<div v-if="o.type === 'raw'">
+																<span><code class="hex truncate">{{ o.raw }}</code></span>
+															</div>
+															<div v-if="o.type === 'array'">
+																<ul>
+																	<li v-for="el in o.array">
+																		<div v-if="el.type === 'state'">
+																			<span v-if="lang === 'ja'">{{ el.state.ja }}</span>
+																			<span v-if="lang === 'en'">{{ el.state.en }}</span>
+																		</div>
+																		<div v-if="el.type === 'number'">
+																			<span>{{ el.number.value }}</span>
+																			<span v-if="el.number.unit">{{ el.number.unit }}</span>
+																		</div>
+																		<div v-if="el.type === 'date-time'">
+																			<span>{{ el.dateTime }}</span>
+																		</div>
+																		<div v-if="el.type === 'date'">
+																			<span>{{ el.date }}</span>
+																		</div>
+																		<div v-if="el.type === 'time'">
+																			<span>{{ el.time }}</span>
+																		</div>
+																		<div v-if="el.type === 'raw'">
+																			<code class="hex">{{ el.raw }}</code>
+																			<span v-if="el.className">
+																				<span v-if="lang === 'ja'">{{ el.className.ja }}</span>
+																				<span v-if="lang === 'en'">{{ el.className.en }}</span>
+																			</span>
+																		</div>
+																		<div v-if="el.type === 'object'">
+																			<dl>
+																				<template v-for="o in el.object">
+																					<dt>
+																						<span v-if="lang === 'ja'">{{ o.elementName.ja }}</span>
+																						<span v-if="lang === 'en'">{{ o.elementName.en }}</span>
+																					</dt>
+																					<dd>
+																						<template v-if="o.type === 'number'">
+																							{{ o.number.value}}
+																							<template v-if="o.number.unit">
+																								{{ o.number.unit }}
+																							</template>
+																						</template>
+																					</dd>
+																				</template>
+																			</dl>
+																		</div>
+																	</li>
+																</ul>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+										</template>
+									</template>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- ホーム画面: リモートデバイス一覧 (コントローラーの場合のみ表示) -->
+	<script type="text/template" id="tmpl-component-remote-device-list">
+		<section class="card-deck accordion" v-if="is_controller">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">リモートデバイス</span>
+						<span v-if="lang === 'en'">Remote Devices</span>
+					</h2>
+					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#remote-device-list-body">
+						<i class="fas fa-plus" hidden></i>
+						<i class="fas fa-minus"></i>
+					</a>
+				</div>
+				<div class="card-body collapse show" id="remote-device-list-body">
+					<div class="form-group">
+						<!--
+						<button type="button" class="btn btn-sm btn-secondary d-inline-block" v-on:click="reloadList">
+							<span v-if="lang === 'ja'">再読込</span>
+							<span v-if="lang === 'en'">Reload</span>
+						</button>
+						-->
+						<button type="button" class="btn btn-sm btn-secondary d-inline-block" v-on:click="sendDiscoveryPacket">
+							<span v-if="lang === 'ja'">機器探索</span>
+							<span v-if="lang === 'en'">Search Devices</span>
+						</button>
+						<button type="button" class="btn btn-sm btn-secondary d-inline-block" v-on:click="deleteRemoteDevices">
+							<span v-if="lang === 'ja'">クリア</span>
+							<span v-if="lang === 'en'">Clear</span>
+						</button>
+					</div>
+					<table class="table table-sm">
+						<tbody style="display: block; max-height: 400px; overflow-y: scroll;">
+							<template v-for="d in remote_device_list">
+								<tr>
+									<td>{{ d.address }}</td>
+									<td colspan="2"><code class="hex">{{ d.id }}</code></td>
+								</tr>
+								<tr v-for="e in d.eojList">
+									<td></td>
+									<td>
+										<template v-if="e.isKnownClass">
+											<router-link v-bind:to="'/remoteDevice/' + d.id + '/' + e.eoj">
+												<i class="fas fa-list-ul"></i>
+											</router-link>
+										</template>
+										<template v-else>
+											<i class="fas fa-list-ul"></i>
+										</template>
+										<code class="hex">{{ e.eoj }}</code>
+										<template v-if="lang === 'ja'">{{ e.className.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.className.en }}</template>
+										<template v-if="e.release">({{ e.release }})</template>
+									</td>
+									<td>
+										<template v-if="e.manufacturer">
+											<small v-if="lang === 'ja'">{{ e.manufacturer.name.ja }} (<code class="hex">{{ e.manufacturer.code }}</code>)</small>
+											<small v-if="lang === 'en'">{{ e.manufacturer.name.en }} (<code class="hex">{{ e.manufacturer.code }}</code>)</small>
+										</template>
+									</td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- ホーム画面: パケット送信 -->
+	<script type="text/template" id="tmpl-component-send-packet">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">パケット送信</span>
+						<span v-if="lang === 'en'">Send a Packet</span>
+					</h2>
+					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#send-packet-body">
+						<i class="fas fa-plus" hidden></i>
+						<i class="fas fa-minus"></i>
+					</a>
+				</div>
+				<div class="card-body collapse show" id="send-packet-body">
+					<form>
+						<div class="form-group row">
+							<div class="col-sm-6">
+								<label for="send-packet-address" class="col-form-label col-form-label-sm">
+									<span v-if="lang === 'ja'">宛先 IP アドレス</span>
+									<span v-if="lang === 'en'">Destination IP Address</span>
+								</label>
+								<input type="text" class="form-control form-control-sm" id="send-packet-address" v-model="packet.address" list="address_candidate_list">
+								<datalist id="address_candidate_list">
+									<option v-for="address in address_candidate_list" v-bind:value="address">{{ address }}</option>
+								</datalist>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-tid" class="col-form-label col-form-label-sm">TID</label>
+								<input type="number" class="form-control form-control-sm" id="send-packet-tid" v-bind:placeholder="[ lang === 'ja' ? '指定がなければ自動採番' : 'Auto numbering if not specified' ]" v-model="packet.tid">
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-sm-6">
+								<div class="row">
+									<div class="form-group col-md-8">
+										<label for="send-packet-seoj-class-code" class="col-form-label col-form-label-sm">SEOJ</label>
+										<select class="form-control form-control-sm" id="send-packet-seoj-class-code" v-model="packet.seoj.class_code" v-on:change="updateEpcList">
+											<option value="">
+												<template v-if="lang === 'ja'">クラスを選択してください</template>
+												<template v-if="lang === 'en'">Select a class</template>
+											</option>
+											<option v-for="d in device_list" v-bind:value="d.eoj">
+												0x{{ d.eoj }}:
+												<template v-if="lang === 'ja'">{{ d.className.ja }}</template>
+												<template v-if="lang === 'en'">{{ d.className.en }}</template>
+											</option>
+										</select>
+									</div>
+									<div class="form-group col-md-4">
+										<label for="send-packet-seoj-instance" class="col-form-label col-form-label-sm">
+											<template v-if="lang === 'ja'">インスタンス番号</template>
+											<template v-if="lang === 'en'">Instance Number</template>
+										</label>
+										<select class="form-control form-control-sm" id="send-packet-seoj-instance" v-model="packet.seoj.instance">
+											<option value="">
+												<template v-if="lang === 'ja'">インスタンスを選択してください</template>
+												<template v-if="lang === 'en'">Select an instance</template>
+											</option>
+											<option value="01">0x01</option>
+											<option value="02">0x02</option>
+											<option value="03">0x03</option>
+											<option value="04">0x04</option>
+											<option value="05">0x05</option>
+											<option value="06">0x06</option>
+											<option value="07">0x07</option>
+											<option value="08">0x08</option>
+											<option value="09">0x09</option>
+											<option value="0A">0x0A</option>
+											<option value="0B">0x0B</option>
+											<option value="0C">0x0C</option>
+											<option value="0D">0x0D</option>
+											<option value="0E">0x0E</option>
+											<option value="0F">0x0F</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<div class="col-sm-6">
+								<div class="row">
+									<div class="form-group col-md-8">
+										<label for="send-packet-deoj-class-code" class="col-form-label col-form-label-sm">DEOJ</label>
+										<select class="form-control form-control-sm" id="send-packet-deoj-class-code" v-model="packet.deoj.class_code" v-on:change="updateEpcList">
+											<option value="">
+												<template v-if="lang === 'ja'">クラスを選択してください</template>
+												<template v-if="lang === 'en'">Select a class</template>
+											</option>
+											<option v-for="d in device_list" v-bind:value="d.eoj">
+												0x{{ d.eoj }}:
+												<template v-if="lang === 'ja'">{{ d.className.ja }}</template>
+												<template v-if="lang === 'en'">{{ d.className.en }}</template>
+											</option>
+										</select>
+									</div>
+									<div class="form-group col-md-4">
+										<label for="send-packet-deoj-instance" class="col-form-label col-form-label-sm">
+											<template v-if="lang === 'ja'">インスタンス番号</template>
+											<template v-if="lang === 'en'">Instance Number</template>
+										</label>
+										<select class="form-control form-control-sm" id="send-packet-deoj-instance" v-model="packet.deoj.instance">
+											<option value="">
+												<template v-if="lang === 'ja'">インスタンスを選択してください</template>
+												<template v-if="lang === 'en'">Select an instance</template>
+											</option>
+											<option value="00">0x00</option>
+											<option value="01">0x01</option>
+											<option value="02">0x02</option>
+											<option value="03">0x03</option>
+											<option value="04">0x04</option>
+											<option value="05">0x05</option>
+											<option value="06">0x06</option>
+											<option value="07">0x07</option>
+											<option value="08">0x08</option>
+											<option value="09">0x09</option>
+											<option value="0A">0x0A</option>
+											<option value="0B">0x0B</option>
+											<option value="0C">0x0C</option>
+											<option value="0D">0x0D</option>
+											<option value="0E">0x0E</option>
+											<option value="0F">0x0F</option>
+										</select>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group row">
+							<div class="col-sm-6">
+								<label for="send-packet-esv" class="col-form-label col-form-label-sm">ESV</label>
+								<select class="form-control form-control-sm" id="send-packet-esv" v-model="packet.esv" v-on:change="updateEpcList">
+									<option value="">
+										<template v-if="lang === 'ja'">ESV を選択してください</template>
+										<template v-if="lang === 'en'">Select an ESV</template>
+									</option>
+									<optgroup v-bind:label="[ lang === 'ja' ? '要求用 ESV コード' : 'Service Codes for Request' ]">
+										<option value="60">
+											0x60: SetI |
+											<template v-if="lang === 'ja'">書き込み要求（応答不要）</template>
+											<template v-if="lang === 'en'">Write request (no response required)</template>
+										</option>
+										<option value="61">
+											0x61: SetC |
+											<template v-if="lang === 'ja'">書き込み要求（応答要）</template>
+											<template v-if="lang === 'en'">write request (response required)</template>
+										</option>
+										<option value="62">
+											0x62: Get |
+											<template v-if="lang === 'ja'">読み出し要求</template>
+											<template v-if="lang === 'en'">Read request</template>
+										</option>
+										<option value="63">
+											0x63: INF_REQ |
+											<template v-if="lang === 'ja'">通知要求</template>
+											<template v-if="lang === 'en'">Notification request</template>
+										</option>
+										<option value="6E">
+											0x6E: SetGet |
+											<template v-if="lang === 'ja'">書き込み・読み出し要求</template>
+											<template v-if="lang === 'en'">Write &amp; read request</template>
+										</option>
+									</optgroup>
+									<optgroup v-bind:label="[ lang === 'ja' ? '応答・通知用 ESV コード' : 'ESV Codes for Response/Notification' ]">
+										<option value="71">
+											0x71: Set_Res |
+											<template v-if="lang === 'ja'">書き込み応答</template>
+											<template v-if="lang === 'en'">Write response</template>
+										</option>
+										<option value="72">
+											0x72: Get_Res |
+											<template v-if="lang === 'ja'">読み出し応答</template>
+											<template v-if="lang === 'en'">Read response</template>
+										</option>
+										<option value="73">
+											0x73: INF |
+											<template v-if="lang === 'ja'">通知</template>
+											<template v-if="lang === 'en'">Notification</template>
+										</option>
+										<option value="74">
+											0x74: INFC |
+											<template v-if="lang === 'ja'">通知（応答要）</template>
+											<template v-if="lang === 'en'">Notification (response required)</template>
+										</option>
+										<option value="7A">
+											0x7A: INFC_Res |
+											<template v-if="lang === 'ja'">通知応答</template>
+											<template v-if="lang === 'en'">Notification response</template>
+										</option>
+										<option value="7E">
+											0x7E: SetGet_Res |
+											<template v-if="lang === 'ja'">書き込み・読み出し応答</template>
+											<template v-if="lang === 'en'">Write &amp; read response</template>
+										</option>
+									</optgroup>
+									<optgroup v-bind:label="[ lang === 'ja' ? '不可応答用 ESV コード' : 'ESV Codes for &quot;Response Not Possible&quot;' ]">
+										<option value="50">
+											0x50: SetI_SNA |
+											<template v-if="lang === 'ja'">書き込み要求不可応答</template>
+											<template v-if="lang === 'en'">write request &quot;response not possible&quot;</template>
+										</option>
+										<option value="51">
+											0x51: SetC_SNA |
+											<template v-if="lang === 'ja'">書き込み要求不可応答</template>
+											<template v-if="lang === 'en'">Write request &quot;response not possible&quot;</template>
+										</option>
+										<option value="52">
+											0x52: Get_SNA |
+											<template v-if="lang === 'ja'">読み出し不可応答</template>
+											<template v-if="lang === 'en'">Read &quot;response not possible&quot;</template>
+										</option>
+										<option value="53">
+											0x53: INF_SNA |
+											<template v-if="lang === 'ja'">通知不可応答</template>
+											<template v-if="lang === 'en'">Notification &quot;response not possible&quot;</template>
+										</option>
+										<option value="5E">
+											0x5E: SetGet_SNA |
+											<template v-if="lang === 'ja'">書き込み・読み出し不可応答</template>
+											<template v-if="lang === 'en'">Write &amp; read &quot;response not possible&quot;</template>
+										</option>
+									</optgroup>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-opc" class="col-form-label col-form-label-sm">OPC</label>
+								<select class="form-control form-control-sm" id="send-packet-deoj-instance" v-model="packet.opc">
+									<option value="">
+										<template v-if="lang === 'ja'">OPC を選択してください</template>
+										<template v-if="lang === 'en'">Select an OPC</template>
+									</option>
+									<option value="01">0x01</option>
+									<option value="02">0x02</option>
+									<option value="03">0x03</option>
+									<option value="04">0x04</option>
+									<option value="05">0x05</option>
+									<option value="06">0x06</option>
+									<option value="07">0x07</option>
+									<option value="08">0x08</option>
+									<option value="09">0x09</option>
+									<option value="0A">0x0A</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="form-group row" v-if="packet.opc >= '01'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-1" class="col-form-label col-form-label-sm">EPC-1</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-1" v-model="packet.epc_1">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-1" class="col-form-label col-form-label-sm">EDT-1</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_1">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="1">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-1" v-model="packet.edt_1" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '02'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-2" class="col-form-label col-form-label-sm">EPC-2</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-2" v-model="packet.epc_2">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-3" class="col-form-label col-form-label-sm">EDT-2</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_2">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="2">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-2" v-model="packet.edt_2" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '03'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-3" class="col-form-label col-form-label-sm">EPC-3</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-3" v-model="packet.epc_3">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-3" class="col-form-label col-form-label-sm">EDT-3</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_3">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="3">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-3" v-model="packet.edt_3" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '04'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-4" class="col-form-label col-form-label-sm">EPC-4</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-4" v-model="packet.epc_4">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-4" class="col-form-label col-form-label-sm">EDT-4</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_4">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="4">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-4" v-model="packet.edt_4" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '05'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-5" class="col-form-label col-form-label-sm">EPC-5</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-5" v-model="packet.epc_5">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-5" class="col-form-label col-form-label-sm">EDT-5</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_5">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="5">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-5" v-model="packet.edt_5" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '06'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-6" class="col-form-label col-form-label-sm">EPC-6</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-6" v-model="packet.epc_6">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-6" class="col-form-label col-form-label-sm">EDT-6</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_6">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="6">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-6" v-model="packet.edt_6" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '07'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-7" class="col-form-label col-form-label-sm">EPC-7</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-7" v-model="packet.epc_7">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-7" class="col-form-label col-form-label-sm">EDT-7</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_7">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="7">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-7" v-model="packet.edt_7" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '08'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-8" class="col-form-label col-form-label-sm">EPC-8</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-8" v-model="packet.epc_8">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-8" class="col-form-label col-form-label-sm">EDT-8</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_8">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="8">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-8" v-model="packet.edt_8" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '09'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-9" class="col-form-label col-form-label-sm">EPC-9</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-9" v-model="packet.epc_9">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-9" class="col-form-label col-form-label-sm">EDT-9</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_9">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="9">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-9" v-model="packet.edt_9" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row" v-if="packet.opc >= '0A'">
+							<div class="col-sm-6">
+								<label for="send-packet-epc-10" class="col-form-label col-form-label-sm">EPC-10</label>
+								<select class="form-control form-control-sm" id="send-packet-epc-10" v-model="packet.epc_10">
+									<option value=""></option>
+									<option v-for="e in epc_list" v-bind:value="e.epc">
+										0x{{ e.epc }}:
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</option>
+								</select>
+							</div>
+							<div class="col-sm-6">
+								<label for="send-packet-edt-10" class="col-form-label col-form-label-sm">EDT-10</label>
+								<div class="input-group">
+									<div class="input-group-prepend" v-if="packet.epc_10">
+										<div class="input-group-text" v-on:click="showEdtDetailModal" data-number="10">
+											<i class="fas fa-info-circle"></i>
+										</div>
+									</div>
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-10" v-model="packet.edt_10" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+								</div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-sm-12">
+								<button type="button" class="btn btn-secondary btn-sm" v-on:click="sendPacket">
+									<template v-if="lang === 'ja'">送信</template>
+									<template v-if="lang === 'en'">Send</template>
+								</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- ホーム画面: パケットモニター -->
+	<script type="text/template" id="tmpl-component-packet-monitor">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">パケットモニター</span>
+						<span v-if="lang === 'en'">Packet Monitor</span>
+					</h2>
+					<div class="d-inline-block float-right">
+						<a class="btn btn-sm" v-on:click="clearPacketList">
+							<i class="fas fa-trash-alt"></i>
+						</a>
+						<a class="btn btn-sm" data-toggle="collapse" data-target="#packet-monitor-body">
+							<i class="fas fa-plus" hidden></i>
+							<i class="fas fa-minus"></i>
+						</a>
+					</div>
+				</div>
+				<div class="card-body collapse show" id="packet-monitor-body">
+					<div id="packet-list-wrapper">
+						<ul class="list-group" id="packet-list" v-on:keyup.stop v-on:keydown.stop>
+							<li v-for="packet in packet_list" class="list-group-item" v-bind:id="packet.id" tabindex="0"  v-on:focus="showPacketDetail" v-on:keydown="upDownList">
+								<span class="col1">{{ packet.no }}</span>
+								<span class="col2">{{ packet.direction }}</span>
+								<span class="col3">{{ packet.address }}</span>
+								<span class="col4">{{ packet.hex }}</span>
+							</li>
+						</ul>
+					</div>
+					<div id="packet-detail-wrapper">
+						<packet-detail></packet-detail>
+					</div>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- ホーム画面: パケットモニター: パケット詳細 -->
+	<script type="text/template" id="tmpl-component-packet-detail">
+		<table class="table table-sm packet-detail" v-if="hidden === false">
+			<tr>
+				<th v-if="direction === 'TX'">
+					<span v-if="lang === 'ja'">送信先 IP アドレス</span>
+					<span v-if="lang === 'en'">Destination IP address</span>
+				</th>
+				<th v-if="direction === 'RX'">
+					<span v-if="lang === 'ja'">送信元 IP アドレス</span>
+					<span v-if="lang === 'en'">Source IP address</span>
+				</th>
+				<td>{{ address }}</td>
+			</tr>
+			<tr>
+				<th>
+					<span v-if="lang === 'ja'">パケットデータ</span>
+					<span v-if="lang === 'en'">Packet Data</span>
+				</th>
+				<td><code class="hex">{{ hex }}</code></td>
+			</tr>
+			<tr>
+				<th>EHD</th>
+				<td>
+					<code class="hex">{{ data.ehd.hex }}</code>
+				</td>
+			</tr>
+			<tr>
+				<th>TID</th>
+				<td>
+					<code class="hex">{{ data.tid.hex }}</code> |
+					{{ data.tid.value }}
+				</td>
+			</tr>
+			<tr>
+				<th>SEOJ</th>
+				<td>
+					<code class="hex">{{ data.seoj.hex }}</code> |
+					<span v-if="lang === 'ja'">{{ data.seoj.className.ja }}</span>
+					<span v-if="lang === 'en'">{{ data.seoj.className.en }}</span>
+				</td>
+			</tr>
+			<tr>
+				<th>DEOJ</th>
+				<td>
+					<code class="hex">{{ data.deoj.hex }}</code> | 
+					<span v-if="lang === 'ja'">{{ data.deoj.className.ja }}</span>
+					<span v-if="lang === 'en'">{{ data.deoj.className.en }}</span>
+				</td>
+			</tr>
+			<tr>
+				<th>ESV</th>
+				<td>
+					<code class="hex">{{ data.esv.hex }}</code> | 
+					{{ data.esv.serviceName }}
+				</td>
+			</tr>
+			<tr>
+				<th>OPC</th>
+				<td>
+					<code class="hex">{{ data.opc.hex }}</code> |
+					{{ data.opc.value }}
+				</td>
+			</tr>
+			<tr>
+				<th>PROPS</th>
+				<td>
+					<div v-for="prop in data.properties">
+						<table class="table table-sm property">
+							<tr>
+								<th>
+									<span v-if="lang === 'ja'">プロパティデータ</span>
+									<span v-if="lang === 'en'">Property Data</span>
+								</th>
+								<td>
+									<code class="hex">{{ prop.hex }}</code>
+								</td>
+							</tr>
+							<tr>
+								<th>EPC</th>
+								<td>
+									<code class="hex">{{ prop.epc.hex }}</code> |
+									<template v-if="prop.epc.propertyName">
+										<span v-if="lang === 'ja'">{{ prop.epc.propertyName.ja }}</span>
+										<span v-if="lang === 'en'">{{ prop.epc.propertyName.en }}</span>
+									</template>
+								</td>
+							</tr>
+							<tr>
+								<th>PDC</th>
+								<td>
+									<code class="hex">{{ prop.pdc.hex }}</code> |
+									{{ prop.pdc.value }}
+								</td>
+							</tr>
+							<tr>
+								<th>EDT</th>
+								<td class="edt-detail">
+									<div v-if="prop.edt.hex">
+										<div>
+											<code class="hex">{{ prop.edt.hex }}</code>
+										</div>
+										<template v-if="prop.edt.data">
+											<div v-if="prop.edt.data.type === 'state'">
+												<template v-if="prop.edt.data.state">
+													<span v-if="lang === 'ja'">{{ prop.edt.data.state.ja }}</span>
+													<span v-if="lang === 'en'">{{ prop.edt.data.state.en }}</span>
+												</template>
+											</div>
+											<div v-if="prop.edt.data.type === 'number'">
+												<span>{{ prop.edt.data.number.value}}</span>
+												<span v-if="prop.edt.data.number.unit">{{ prop.edt.data.number.unit }}</span>
+												<span v-if="prop.edt.data.number.special">({{ prop.edt.data.number.special }})</span>
+												<span v-if="prop.edt.data.number.coefficient">
+													(
+													<span v-if="lang === 'ja'">係数:</span>
+													<span v-if="lang === 'en'">Coefficient:</span>
+													<template v-for="co in prop.edt.data.number.coefficient">
+														<code class="coefficient">{{ co }}</code>
+													</template>
+													)
+												</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'numericValue'">
+												<span>{{ prop.edt.data.numericValue }}</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'level'">
+												<span>Level {{ prop.edt.data.level }}</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'date-time'">
+												<span>{{ prop.edt.data.dateTime }}</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'date'">
+												<span>{{ prop.edt.data.date }}</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'time'">
+												<span>{{ prop.edt.data.time }}</span>
+											</div>
+											<div v-if="prop.edt.data.type === 'raw'">
+												<div v-if="prop.edt.data.propertyList">
+													<ul>
+														<li v-for="pd in prop.edt.data.propertyList">
+															<code class="hex">{{ pd.epc }}</code> |
+															<template v-if="pd.propertyName">
+																<span v-if="lang === 'ja'">{{ pd.propertyName.ja }}</span>
+																<span v-if="lang === 'en'">{{ pd.propertyName.en }}</span>
+															</template>
+														</li>
+													</ul>
+												</div>
+												<div v-if="prop.edt.data.manufacturerName">
+													<span v-if="lang === 'ja'">{{ prop.edt.data.manufacturerName.ja }}</span>
+													<span v-if="lang === 'en'">{{ prop.edt.data.manufacturerName.en }}</span>
+												</div>
+												<div v-if="prop.edt.data.release">
+													{{ prop.edt.data.release }}
+												</div>
+											</div>
+											<div v-if="prop.edt.data.type === 'bitmap'">
+												<div v-for="o in prop.edt.data.bitmap">
+													<dl>
+														<dt>
+															<span v-if="lang === 'ja'">{{ o.descriptions.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.descriptions.en }}</span>
+														</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																<span v-if="lang === 'en'">{{ o.state.en }}</span>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'level'">
+																<span>Level {{ o.level }}</span>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+											<div v-if="prop.edt.data.type === 'array'">
+												<div v-for="o of prop.edt.data.array">
+													<div v-if="o.type === 'number'">
+														<span>{{ o.number.value }}</span>
+														<span v-if="o.number.unit">{{ o.number.unit }}</span>
+														<span v-if="o.number.coefficient">
+															(
+															<span v-if="lang === 'ja'">係数:</span>
+															<span v-if="lang === 'en'">Coefficient:</span>
+															<template v-for="co in o.number.coefficient">
+																<code class="coefficient">{{ co }}</code>
+															</template>
+															)
+														</span>
+													</div>
+													<div v-if="o.type === 'state'">
+														<template v-if="o.state">
+															<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.state.en }}</span>
+														</template>
+													</div>
+												</div>
+											</div>
+											<div v-if="prop.edt.data.type === 'object'">
+												<div v-for="o in prop.edt.data.object">
+													<dl>
+														<dt>{{ o.name }}</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																<span v-if="lang === 'en'">{{ o.state.en }}</span>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'date-time'">
+																<span>{{ o.dateTime }}</span>
+															</div>
+															<div v-if="o.type === 'date'">
+																<span>{{ o.date }}</span>
+															</div>
+															<div v-if="o.type === 'time'">
+																<span>{{ o.time }}</span>
+															</div>
+															<div v-if="o.type === 'raw'">
+																<span>{{ o.raw }}</span>
+															</div>
+															<div v-if="o.type === 'array'">
+																<ul>
+																	<li v-for="el in o.array">
+																		<div v-if="el.type === 'state'">
+																			<span v-if="lang === 'ja'">{{ el.state.ja }}</span>
+																			<span v-if="lang === 'en'">{{ el.state.en }}</span>
+																		</div>
+																		<div v-if="el.type === 'number'">
+																			<span>{{ el.number.value }}</span>
+																			<span v-if="el.number.unit">{{ el.number.unit }}</span>
+																		</div>
+																		<div v-if="el.type === 'date-time'">
+																			<span>{{ el.dateTime }}</span>
+																		</div>
+																		<div v-if="el.type === 'date'">
+																			<span>{{ el.date }}</span>
+																		</div>
+																		<div v-if="el.type === 'time'">
+																			<span>{{ el.time }}</span>
+																		</div>
+																		<div v-if="el.type === 'raw'">
+																			<code class="hex">{{ el.raw }}</code>
+																			<span v-if="el.className">
+																				<span v-if="lang === 'ja'">{{ el.className.ja }}</span>
+																				<span v-if="lang === 'en'">{{ el.className.en }}</span>
+																			</span>
+																		</div>
+																		<div v-if="el.type === 'object'">
+																			<dl>
+																				<template v-for="o in el.object">
+																					<dt>{{ o.name }}</dt>
+																					<dd>
+																						<template v-if="o.type === 'number'">
+																							{{ o.number.value}}
+																							<template v-if="o.number.unit">
+																								{{ o.number.unit }}
+																							</template>
+																						</template>
+																					</dd>
+																				</template>
+																			</dl>
+																		</div>
+																	</li>
+																</ul>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+										</template>
+									</div>
+								</td>
+							</tr>
+							<tr v-if="prop.edt.note">
+								<th>
+									<div v-if="lang === 'ja'">備考</div>
+									<div v-if="lang === 'en'">Note</div>
+								</th>
+								<td>
+									<div v-if="lang === 'ja'">{{ prop.edt.note.ja }}</div>
+									<div v-if="lang === 'en'">{{ prop.edt.note.en }}</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</script>
+
+	<!-- システム設定画面 -->
+	<script type="text/template" id="tmpl-page-conf">
+		<div>
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">システム設定</span>
+						<span v-if="lang === 'en'">System Configurations</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<form id="sys-conf-frm">
+						<div class="form-group row">
+							<label for="ip_address_version" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">IP アドレスバージョン</template>
+								<template v-if="lang === 'en'">IP address version</template>
+							</label>
+							<div class="col-sm-8">
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="ip_address_version" id="ip_address_version_4" v-model="data.ip_address_version" v-bind:value="4">
+									<label class="form-check-label" for="ip_address_version_4">IPv4</label>
+								</div>
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="ip_address_version" id="ip_address_version_6" v-model="data.ip_address_version" v-bind:value="6">
+									<label class="form-check-label" for="ip_address_version_6">IPv6</label>
+								</div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="packet_log" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">パケットログ</template>
+								<template v-if="lang === 'en'">Packet log</template>
+							</label>
+							<div class="col-sm-8">
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" name="packet_log" id="packet_log" v-model="data.packet_log">
+									<label class="form-check-label" for="ip_address_version_4">
+										<template v-if="lang === 'ja'">有効にする</template>
+										<template v-if="lang === 'en'">Enabled</template>
+									</label>
+								</div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="packet_log_days" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">パケットログ保存日数</template>
+								<template v-if="lang === 'en'">Packet log retention period</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="packet_log_days" style="width: 7em;" min="1" max="365" step="1" v-model="data.packet_log_days">
+								<template v-if="lang === 'ja'">日</template>
+								<template v-if="lang === 'en'">days</template>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="multicast_response_wait_min_msec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">マルチキャスト応答時間</template>
+								<template v-if="lang === 'en'">Multicast response time</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="multicast_response_wait_min_msec" style="width: 7em;" min="1" max="10000" step="1" v-model="data.multicast_response_wait_min_msec">
+								<template v-if="lang === 'ja'">～</template>
+								<template v-if="lang === 'en'">~</template>
+								<input type="number" class="form-control form-control-sm d-inline" id="multicast_response_wait_max_msec" style="width: 7em;" min="1" max="10000" step="1" v-model="data.multicast_response_wait_max_msec">
+
+								<template v-if="lang === 'ja'">ミリ秒の間に応答する</template>
+								<template v-if="lang === 'en'">msec</template>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="get_res_wait_msec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">Get 応答時間 (デフォルト値)</template>
+								<template v-if="lang === 'en'">Get response time (Default value)</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="get_res_wait_msec" style="width: 7em;" min="0" max="100000" step="1" v-model="data.get_res_wait_msec">
+								<template v-if="lang === 'ja'">ミリ秒</template>
+								<template v-if="lang === 'en'">msec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ Get の応答に適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to the responses for Get.</small>
+								</div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="set_res_wait_msec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">Set 応答時間 (デフォルト値)</template>
+								<template v-if="lang === 'en'">Set response time (Default value)</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="set_res_wait_msec" style="width: 7em;" min="0" max="100000" step="1" v-model="data.set_res_wait_msec">
+								<template v-if="lang === 'ja'">ミリ秒</template>
+								<template v-if="lang === 'en'">msec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ SetI/SetC の応答に適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to the responses for SetI/SetC.</small>
+								</div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="inf_res_wait_msec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">INF 応答時間 (デフォルト値)</template>
+								<template v-if="lang === 'en'">INF response time (Default value)</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="inf_res_wait_msec" style="width: 7em;" min="0" max="100000" step="1" v-model="data.inf_res_wait_msec">
+								<template v-if="lang === 'ja'">ミリ秒</template>
+								<template v-if="lang === 'en'">msec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ INF_REQ の応答に適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to the responses for INF_REQ.</small>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group row">
+							<label for="epc_data_setting_time_msec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">EPC データセットの時間 (デフォルト値)</template>
+								<template v-if="lang === 'en'">EPC data setting time (Default value)</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="epc_data_setting_time_msec" style="width: 7em;" min="0" max="100000" step="1" v-model="data.epc_data_setting_time_msec">
+								<template v-if="lang === 'ja'">ミリ秒</template>
+								<template v-if="lang === 'en'">msec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ SetGet の応答および INF に適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to INF and the responses for SetGet.</small>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group row">
+							<label for="instance_announce_interval_sec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">インスタンス通知の送信間隔</template>
+								<template v-if="lang === 'en'">Transmission interval of instance announce</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="instance_announce_interval_sec" style="width: 7em;" min="1" max="86400" step="1" v-model="data.instance_announce_interval_sec">
+								<template v-if="lang === 'ja'">秒</template>
+								<template v-if="lang === 'en'">sec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ ノードプロファイルが送信専用ノード (EOJ: 0x0E0F02) の場合にのみ適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to a transmission-only node (EOJ: 0x0E0F02).</small>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group row">
+							<label for="property_announce_interval_sec" class="col-sm-4 col-form-label">
+								<template v-if="lang === 'ja'">プロパティ通知の送信間隔</template>
+								<template v-if="lang === 'en'">Transmission interval of property announce</template>
+							</label>
+							<div class="col-sm-8">
+								<input type="number" class="form-control form-control-sm d-inline" id="property_announce_interval_sec" style="width: 7em;" min="1" max="86400" step="1" v-model="data.property_announce_interval_sec">
+								<template v-if="lang === 'ja'">秒</template>
+								<template v-if="lang === 'en'">sec</template>
+								<div>
+									<small v-if="lang === 'ja'">※ ノードプロファイルが送信専用ノード (EOJ: 0x0E0F02) の場合にのみ適用されます。</small>
+									<small v-if="lang === 'en'">※ This value is applied to a transmission-only node (EOJ: 0x0E0F02).</small>
+								</div>
+							</div>
+						</div>
+
+						<p>
+							<button type="button" class="btn btn-secondary btn-sm" v-on:click="cencelConfig">
+								<template v-if="lang === 'ja'">キャンセル</template>
+								<template v-if="lang === 'en'">Cancel</template>
+							</button>
+							<button type="button" class="btn btn-secondary btn-sm" v-on:click="submitConfig">
+								<template v-if="lang === 'ja'">設定</template>
+								<template v-if="lang === 'en'">Set</template>
+							</button>
+						</p>
+					</form>
+				</div>
+			</div>
+		</section>
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">システムリセット</span>
+						<span v-if="lang === 'en'">System Reset</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<form>
+						<div class="form-group">
+							<button type="button" class="btn btn-sm btn-danger" v-on:click="resetSystem">
+								<template v-if="lang === 'ja'">システムをリセットする</template>
+								<template v-if="lang === 'en'">Reset the system</template>
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</section>
+		</div>
+	</script>
+
+	<!-- EOJ 新規登録画面 -->
+	<script type="text/template" id="tmpl-page-add-eoj">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">EOJ 新規登録</span>
+						<span v-if="lang === 'en'">Register a new EOJ</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<p v-if="lang === 'ja'">デバイスクラスを一つ選択し、インスタンス番号を選択してから、登録ボタンを押してください。</p>
+					<p v-if="lang === 'en'">Select a device class and an instance number, then press the &quot;Register&quot; button. </p>
+					<dl>
+						<dt>
+							<template v-if="lang === 'ja'">デバイスクラス</template>
+							<template v-if="lang === 'en'">Device Class</template>
+						</dt>
+						<dd>
+							<table class="table table-sm">
+								<tbody>
+									<tr v-for="d in eoj_list">
+										<td>
+											<input type="radio" v-bind:value="d.eoj" v-model="eoj">
+										</td>
+										<td>
+											<code class="hex">{{ d.eoj }}</code>
+										</td>
+										<td>
+											<template v-if="lang === 'ja'">{{ d.className.ja }}</template>
+											<template v-if="lang === 'en'">{{ d.className.en }}</template>
+										</td>
+										<td>
+											<template v-if="lang === 'ja'">リリース {{ d.firstRelease }} ～</template>
+											<template v-if="lang === 'en'">Release {{ d.firstRelease }} ~</template>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">インスタンス番号</template>
+							<template v-if="lang === 'en'">Instance Number</template>
+						</dt>
+						<dd>
+							<div class="form-group">
+								<!--
+								<select class="form-control form-control-sm" v-model="instance">
+									<template v-if="eoj === '0EF0'">
+										<option value="01">
+											0x01
+											<template v-if="eoj === '0EF0'">
+												<template v-if="lang === 'ja'">(一般ノード)</template>
+												<template v-if="lang === 'en'">(General Node)</template>
+											</template>
+										</option>
+										<option value="02">
+											0x02
+											<template v-if="eoj === '0EF0'">
+												<template v-if="lang === 'ja'">(送信専用ノード)</template>
+												<template v-if="lang === 'en'">(Transmission-Only Node)</template>
+											</template>
+										</option>
+									</template>
+									<template v-if="eoj !== '0EF0'">
+										<option value="01">0x01</option>
+										<option value="02">0x02</option>
+										<option value="03">0x03</option>
+										<option value="04">0x04</option>
+										<option value="05">0x05</option>
+										<option value="06">0x06</option>
+										<option value="07">0x07</option>
+										<option value="08">0x08</option>
+										<option value="09">0x09</option>
+									</template>
+								</select>
+								-->
+								<input type="number" min="1" max="255" step="1" class="form-control form-control-sm" v-model="instance">
+								<p v-if="eoj === '0EF0'">
+									<small v-if="lang === 'ja'">※ <code class="hex">0EF0</code> ノードプロファイルを登録する場合、既存のノードプロファイルが置き換えられます。</small>
+									<small v-if="lang === 'en'">* If a <code class="hex">0EF0</code> Node Profile is registered, the existing Node Profile will be replaced by the new Node Profile.</small>
+								</p>
+							</div>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">リリースバージョン</template>
+							<template v-if="lang === 'en'">Release Version</template>
+						</dt>
+						<dd>
+							<div class="form-group">
+								<select class="form-control form-control-sm" v-model="release">
+									<option v-for="r in release_list" v-bind:value="r">{{ r }}</option>
+								</select>
+							</div>
+						</dd>
+					</dl>
+				</div>
+				<div class="card-footer">
+					<button type="button" class="btn btn-secondary" v-on:click="addEoj">
+						<template v-if="lang === 'ja'">登録</template>
+						<template v-if="lang === 'en'">Register</template>
+					</button>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- EOJ 編集画面 -->
+	<script type="text/template" id="tmpl-page-edit-eoj">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">EOJ 編集</span>
+						<span v-if="lang === 'en'">Update the EOJ</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<p v-if="lang === 'ja'">サポートしたい EPC にチェックを入れて編集ボタンを押してください。</p>
+					<p v-if="lang === 'en'">Check the EPCs which this EOJ supports, then press the &quot;Edit&quot; button. </p>
+					<dl>
+						<dt>
+							<template v-if="lang === 'ja'">デバイスクラス</template>
+							<template v-if="lang === 'en'">Device Class</template>
+						</dt>
+						<dd>
+							<code class="hex">{{ eoj }}</code>:
+							<template v-if="lang === 'ja'">{{ class_name.ja }}</template>
+							<template v-if="lang === 'en'">{{ class_name.en }}</template>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">リリースバージョン</template>
+							<template v-if="lang === 'en'">Release Version</template>
+						</dt>
+						<dd>
+							<div class="form-group">
+								<select class="form-control form-control-sm" v-model="release" v-on:change="releaseChanged">
+									<option v-for="r in release_list" v-bind:value="r">{{ r }}</option>
+								</select>
+							</div>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">サポート EPC</template>
+							<template v-if="lang === 'en'">Supported EPCs</template>
+						</dt>
+						<dd>
+							<table class="table">
+								<thead>
+									<tr>
+										<th></th>
+										<th>EPC</th>
+										<th>
+											<template v-if="lang === 'ja'">プロパティ名</template>
+											<template v-if="lang === 'en'">Property Name</template>
+										</th>
+										<th>Get</th>
+										<th>Set</th>
+										<th>Inf</th>
+										<th>
+											<template v-if="lang === 'ja'">リリース</template>
+											<template v-if="lang === 'en'">Release</template>
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="d in all_epc_list" v-bind:class="{ disabled: d.disabled }">
+										<td>
+											<template v-if="d.disabled === false">
+												<template v-if="d.required === true">
+													<i class="fas fa-check"></i>
+												</template>
+												<template v-if="d.required === false">
+													<input type="checkbox" v-bind:value="d.epc" v-model="supported_epc_list" v-bind:disabled="d.disabled" v-bind:readonly="d.required">
+												</template>
+											</template>
+										</td>
+										<td>
+											<code class="hex">{{ d.epc }}</code>
+										</td>
+										<td>
+											<template v-if="lang === 'ja'">{{ d.propertyName.ja }}</template>
+											<template v-if="lang === 'en'">{{ d.propertyName.en }}</template>
+										</td>
+										<td>
+											<template v-if="d.accessRule.get === 'required'">
+												<template v-if="lang === 'ja'"><span class="badge badge-danger">必須</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-danger">Required</span></template>
+											</template>
+											<template v-if="d.accessRule.get === 'optional'">
+												<template v-if="lang === 'ja'"><span class="badge badge-success">任意</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-success">Optional</span></template>
+											</template>
+											<template v-if="d.accessRule.get === 'notApplicable'">
+												<span class="badge badge-secondary">n/a</span>
+											</template>
+										</td>
+										<td>
+											<template v-if="d.accessRule.set === 'required'">
+												<template v-if="lang === 'ja'"><span class="badge badge-danger">必須</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-danger">Required</span></template>
+											</template>
+											<template v-if="d.accessRule.set === 'optional'">
+												<template v-if="lang === 'ja'"><span class="badge badge-success">任意</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-success">Optional</span></template>
+											</template>
+											<template v-if="d.accessRule.set === 'notApplicable'">
+												<span class="badge badge-secondary">n/a</span>
+											</template>
+										</td>
+										<td>
+											<template v-if="d.accessRule.inf === 'required'">
+												<template v-if="lang === 'ja'"><span class="badge badge-danger">必須</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-danger">Required</span></template>
+											</template>
+											<template v-if="d.accessRule.inf === 'optional'">
+												<template v-if="lang === 'ja'"><span class="badge badge-success">任意</span></template>
+												<template v-if="lang === 'en'"><span class="badge badge-success">Optional</span></template>
+											</template>
+											<template v-if="d.accessRule.inf === 'notApplicable'">
+												<span class="badge badge-secondary">n/a</span>
+											</template>
+										</td>
+										<td>
+											{{ d.validRelease.from }}
+											<template v-if="lang === 'ja'">～</template>
+											<template v-if="lang === 'en'">~</template>
+											<template v-if="d.validRelease.to !== 'latest'">{{ d.validRelease.to }}</template>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</dd>
+					</dl>
+				</div>
+				<div class="card-footer">
+					<button type="button" class="btn btn-secondary" v-on:click="editEoj">
+						<template v-if="lang === 'ja'">編集</template>
+						<template v-if="lang === 'en'">Edit</template>
+					</button>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- EDT 編集画面 -->
+	<script type="text/template" id="tmpl-page-edit-edt">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">EDT 編集</span>
+						<span v-if="lang === 'en'">Edit the EDT</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<dl>
+						<dt>EOJ</dt>
+						<dd>
+							<code class="hex">{{ eoj }}</code>:
+							<template v-if="lang === 'ja'">{{ class_name.ja }} (リリース {{ release }})</template>
+							<template v-if="lang === 'en'">{{ class_name.en }} (Release {{ release }})</template>
+						</dd>
+						<dt>EPC</dt>
+						<dd>
+							<code class="hex">{{ epc }}</code>:
+							<template v-if="lang === 'ja'">{{ property_name.ja }}</template>
+							<template v-if="lang === 'en'">{{ property_name.en }}</template>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">現在の EDT</template>
+							<template v-if="lang === 'en'">Current EDT</template>
+						</dt>
+						<dd>
+							<code class="hex">{{ edt.hex }}</code>
+						</dd>
+						<dt>
+							<template v-if="lang === 'ja'">新しい EDT</template>
+							<template v-if="lang === 'en'">New EDT</template>
+						</dt>
+						<dd>
+							<div class="form-group">
+								<template v-if="description.type === 'state'">
+									<select class="form-control form-control-sm" v-model="inputs.state">
+										<option v-for="e in description.enum" v-bind:value="e.edt">
+											<template v-if="lang === 'ja'">{{ e.edt }}: {{ e.descriptions.ja }}</template>
+											<template v-if="lang === 'en'">{{ e.edt }}: {{ e.descriptions.en }}</template>
+										</option>
+									</select>
+								</template>
+								<template v-else-if="description.type === 'number'">
+									<input type="number" class="form-control form-control-sm d-inline-block" v-model="inputs.number" style="width:7em;">
+									<template v-if="description.unit">{{ description.unit }}</template>
+									<p>
+										<small v-if="lang === 'ja'">※ 係数 (<code>coefficient</code>) は反映しないでください。</small>
+										<small v-if="lang === 'en'">* The number must not be multiplied by the coefficient even if the <code>coefficient</code> is defined.</small>
+									</p>
+								</template>
+								<template v-else-if="description.type === 'time'">
+									<input type="text" class="form-control form-control-sm d-inline-block" v-model="inputs.time" style="width:10em;">
+									<p>
+										<small v-if="lang === 'ja'">
+											<template v-if="description.size === 2">※ <code>00:00</code> 形式で入力してください。</template>
+											<template v-if="description.size === 3">※ <code>00:00:00</code> 形式で入力してください。</template>
+										</small>
+										<small v-if="lang === 'en'">
+											<template v-if="description.size === 2">※ Input the time data like <code>00:00</code>.</template>
+											<template v-if="description.size === 3">※ Input the time data like <code>00:00:00</code>.</template>
+										</small>
+									</p>
+								</template>
+								<template v-else-if="description.type === 'date-time'">
+									<input type="text" class="form-control form-control-sm d-inline-block" v-model="inputs.dateTime" style="width:10em;">
+									<p>
+										<small v-if="lang === 'ja'">
+											<template v-if="description.size === 3">※ <code>2020-01</code> 形式で入力してください。</template>
+											<template v-if="description.size === 4">※ <code>2020-01-01</code> 形式で入力してください。</template>
+											<template v-if="description.size === 5">※ <code>2020-01-01T00</code> 形式で入力してください。</template>
+											<template v-if="description.size === 6">※ <code>2020-01-01T00:00</code> 形式で入力してください。</template>
+											<template v-if="description.size === 7">※ <code>2020-01-01T00:00:00</code> 形式で入力してください。</template>
+										</small>
+										<small v-if="lang === 'en'">
+											<template v-if="description.size === 3">※ Input the date-time data like <code>2020-01</code>.</template>
+											<template v-if="description.size === 4">※ Input the date-time data like <code>2020-01-01</code>.</template>
+											<template v-if="description.size === 5">※ Input the date-time data like <code>2020-01-01T00</code>.</template>
+											<template v-if="description.size === 6">※ Input the date-time data like <code>2020-01-01T00:00</code>.</template>
+											<template v-if="description.size === 7">※ Input the date-time data like <code>2020-01-01T00:00:00</code>.</template>
+										</small>
+									</p>
+								</template>
+								<template v-else>
+									<input type="text" class="form-control form-control-sm" v-model="inputs.hex">
+									<p>
+										<small v-if="lang === 'ja'">※ 16 進数表記 (アルファベットは大文字)</small>
+										<small v-if="lang === 'en'">* Hexadecimal representation (Alphabets must be uppercase)</small>
+									</p>
+								</template>
+							</div>
+						</dd>
+						<dt>DeviceDescription</dt>
+						<dd>
+							<pre>{{ description_json }}</pre>
+							<p v-if="note">
+								<small>
+									<template v-if="lang === 'ja'">※ {{ note.ja }}</template>
+									<template v-if="lang === 'en'">* {{ note.en }}</template>
+								</small>
+							</p>
+						</dd>
+					</dl>
+				</div>
+				<div class="card-footer">
+					<button type="button" class="btn btn-secondary" v-on:click="editEdtCancel">
+						<template v-if="lang === 'ja'">キャンセル</template>
+						<template v-if="lang === 'en'">Cancel</template>
+					</button>
+					<button type="button" class="btn btn-secondary" v-on:click="editEdt">
+						<template v-if="lang === 'ja'">編集</template>
+						<template v-if="lang === 'en'">Edit</template>
+					</button>
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- リモートデバイス詳細画面 -->
+	<script type="text/template" id="tmpl-page-remote-device-detail">
+		<section class="card-deck accordion">
+			<div class="card box-shadow mb-12">
+				<div class="card-header">
+					<h2 class="d-inline h5">
+						<span v-if="lang === 'ja'">リモートデバイス詳細</span>
+						<span v-if="lang === 'en'">Details of Remote Devices</span>
+					</h2>
+				</div>
+				<div class="card-body">
+					<div class="form-group">
+						<div class="input-group input-group-sm">
+							<select class="form-control" v-model="device_id_eoj" v-on:change="changeDeviceIdEoj">
+								<optgroup v-for="d in remote_device_list" v-bind:label="d.address + ' (' + d.id + ')'">
+									<template v-for="e in d.eojList">
+										<template v-if="e.isKnownClass">
+										<option v-bind:value="d.id + '-' + e.eoj">
+											0x{{ e.eoj }} |
+											<template v-if="lang === 'ja'">
+												{{ e.className.ja }}<template v-if="e.release"> ({{ e.release }})</template> |
+												{{ e.manufacturer.name.ja }} (0x{{ e.manufacturer.code }})
+											</template>
+											<template v-if="lang === 'en'">
+												{{ e.className.en }}<template v-if="e.release"> ({{ e.release }})</template> |
+												{{ e.manufacturer.name.en }} (0x{{ e.manufacturer.code }})
+											</template>
+										</option>
+										</template>
+									</template>
+								</optgroup>
+							</select>
+						</div>
+					</div>
+
+					<div>
+						<div class="form-group">
+							<button  class="btn btn-sm" v-on:click="getAllEpcData(address, eoj)">
+								<i class="fas fa-download"></i>
+								<template v-if="lang === 'ja'">プロパティデータ一括取得</template>
+								<template v-if="lang === 'en'">Get all property data</template>
+							</button>
+						</div>
+					</div>
+					<table class="table table-sm">
+						<tbody>
+							<tr v-for="e in epc_list">
+								<td>
+									<code class="hex nowrap">{{ e.epc }}</code>
+								</td>
+								<td>
+									<template v-if="e.propertyName">
+										<template v-if="lang === 'ja'">{{ e.propertyName.ja }}</template>
+										<template v-if="lang === 'en'">{{ e.propertyName.en }}</template>
+									</template>
+								</td>
+								<td>
+									<span v-if="e.map.get" class="badge badge-success">Get</span>
+									<span v-else class="badge badge-secondary">Get</span>
+									<span v-if="e.map.set" class="badge badge-success">Set</span>
+									<span v-else class="badge badge-secondary">Set</span>
+									<span v-if="e.map.inf" class="badge badge-success">Inf</span>
+									<span v-else class="badge badge-secondary">Inf</span>
+								</td>
+								<td>
+									<template v-if="e.map.get">
+										<button type="button" class="btn btn-sm btn-link" v-on:click="getEpcData(address, eoj, e.epc)">
+											<i class="fas fa-download"></i>
+										</button>
+									</template>
+								</td>
+								<td class="edt-detail">
+									<template v-if="e.edt">
+										<div>
+											<!--
+											<router-link v-bind:to="'/editEdt/' + eoj + '/' + e.epc">
+												<i class="fas fa-edit"></i>
+											</router-link>
+											-->
+											<code class="hex truncate">{{ e.edt.hex }}</code>
+										</div>
+										<template v-if="e.edt.data">
+											<div v-if="e.edt.data.type === 'state'">
+												<template v-if="e.edt.data.state">
+													<span v-if="lang === 'ja'">{{ e.edt.data.state.ja }}</span>
+													<span v-if="lang === 'en'">{{ e.edt.data.state.en }}</span>
+												</template>
+											</div>
+											<div v-if="e.edt.data.type === 'number'">
+												<span>{{ e.edt.data.number.value}}</span>
+												<span v-if="e.edt.data.number.unit">{{ e.edt.data.number.unit }}</span>
+												<span v-if="e.edt.data.number.special">({{ e.edt.data.number.special }})</span>
+												<span v-if="e.edt.data.number.coefficient">
+													(
+													<span v-if="lang === 'ja'">係数:</span>
+													<span v-if="lang === 'en'">Coefficient:</span>
+													<template v-for="co in e.edt.data.number.coefficient">
+														<code class="coefficient">{{ co }}</code>
+													</template>
+													)
+												</span>
+											</div>
+											<div v-if="e.edt.data.type === 'numericValue'">
+												<span>{{ e.edt.data.numericValue }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'level'">
+												<span>Level {{ e.edt.data.level }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'date-time'">
+												<span>{{ e.edt.data.dateTime }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'date'">
+												<span>{{ e.edt.data.date }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'time'">
+												<span>{{ e.edt.data.time }}</span>
+											</div>
+											<div v-if="e.edt.data.type === 'raw'">
+												<div v-if="e.edt.data.propertyList">
+													<ul>
+														<li v-for="pd in e.edt.data.propertyList">
+															<code class="hex">{{ pd.epc }}</code> |
+															<template v-if="pd.propertyName">
+																<span v-if="lang === 'ja'">{{ pd.propertyName.ja }}</span>
+																<span v-if="lang === 'en'">{{ pd.propertyName.en }}</span>
+															</template>
+														</li>
+													</ul>
+												</div>
+												<div v-if="e.edt.data.manufacturerName">
+													<span v-if="lang === 'ja'">{{ e.edt.data.manufacturerName.ja }}</span>
+													<span v-if="lang === 'en'">{{ e.edt.data.manufacturerName.en }}</span>
+												</div>
+												<div v-if="e.edt.data.release">
+													{{ e.edt.data.release }}
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'bitmap'">
+												<div v-for="o in e.edt.data.bitmap">
+													<dl>
+														<dt>
+															<span v-if="lang === 'ja'">{{ o.descriptions.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.descriptions.en }}</span>
+														</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																<span v-if="lang === 'en'">{{ o.state.en }}</span>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'level'">
+																<span>Level {{ o.level }}</span>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'array'">
+												<div v-for="o of e.edt.data.array">
+													<div v-if="o.type === 'number'">
+														<span>{{ o.number.value }}</span>
+														<span v-if="o.number.unit">{{ o.number.unit }}</span>
+														<span v-if="o.number.coefficient">
+															(
+															<span v-if="lang === 'ja'">係数:</span>
+															<span v-if="lang === 'en'">Coefficient:</span>
+															<template v-for="co in o.number.coefficient">
+																<code class="coefficient">{{ co }}</code>
+															</template>
+															)
+														</span>
+													</div>
+													<div v-if="o.type === 'state'">
+														<template v-if="o.state">
+															<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+															<span v-if="lang === 'en'">{{ o.state.en }}</span>
+														</template>
+													</div>
+												</div>
+											</div>
+											<div v-if="e.edt.data.type === 'object'">
+												<div v-for="o in e.edt.data.object">
+													<dl>
+														<dt>{{ o.name }}</dt>
+														<dd>
+															<div v-if="o.type === 'state'">
+																<span v-if="lang === 'ja'">{{ o.state.ja }}</span>
+																<span v-if="lang === 'en'">{{ o.state.en }}</span>
+															</div>
+															<div v-if="o.type === 'number'">
+																<span>{{ o.number.value }}</span>
+																<span v-if="o.number.unit">{{ o.number.unit }}</span>
+																<span v-if="o.number.coefficient">
+																	(
+																	<span v-if="lang === 'ja'">係数:</span>
+																	<span v-if="lang === 'en'">Coefficient:</span>
+																	<template v-for="co in o.number.coefficient">
+																		<code class="coefficient">{{ co }}</code>
+																	</template>
+																	)
+																</span>
+															</div>
+															<div v-if="o.type === 'date-time'">
+																<span>{{ o.dateTime }}</span>
+															</div>
+															<div v-if="o.type === 'date'">
+																<span>{{ o.date }}</span>
+															</div>
+															<div v-if="o.type === 'time'">
+																<span>{{ o.time }}</span>
+															</div>
+															<div v-if="o.type === 'raw'">
+																<span>{{ o.raw }}</span>
+															</div>
+															<div v-if="o.type === 'array'">
+																<ul>
+																	<li v-for="el in o.array">
+																		<div v-if="el.type === 'state'">
+																			<span v-if="lang === 'ja'">{{ el.state.ja }}</span>
+																			<span v-if="lang === 'en'">{{ el.state.en }}</span>
+																		</div>
+																		<div v-if="el.type === 'number'">
+																			<span>{{ el.number.value }}</span>
+																			<span v-if="el.number.unit">{{ el.number.unit }}</span>
+																		</div>
+																		<div v-if="el.type === 'date-time'">
+																			<span>{{ el.dateTime }}</span>
+																		</div>
+																		<div v-if="el.type === 'date'">
+																			<span>{{ el.date }}</span>
+																		</div>
+																		<div v-if="el.type === 'time'">
+																			<span>{{ el.time }}</span>
+																		</div>
+																		<div v-if="el.type === 'raw'">
+																			<code class="hex">{{ el.raw }}</code>
+																			<span v-if="el.className">
+																				<span v-if="lang === 'ja'">{{ el.className.ja }}</span>
+																				<span v-if="lang === 'en'">{{ el.className.en }}</span>
+																			</span>
+																		</div>
+																		<div v-if="el.type === 'object'">
+																			<dl>
+																				<template v-for="o in el.object">
+																					<dt>{{ o.name }}</dt>
+																					<dd>
+																						<template v-if="o.type === 'number'">
+																							{{ o.number.value}}
+																							<template v-if="o.number.unit">
+																								{{ o.number.unit }}
+																							</template>
+																						</template>
+																					</dd>
+																				</template>
+																			</dl>
+																		</div>
+																	</li>
+																</ul>
+															</div>
+														</dd>
+													</dl>
+												</div>
+											</div>
+										</template>
+									</template>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+				</div>
+			</div>
+		</section>
+	</script>
+
+	<!-- モーダルウィンドウ: エラー (Bootstrap 用) -->
+	<div class="modal fade" id="modal-error" tabindex="-1" role="dialog" aria-labelledby="modal-error-title" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content border-danger text-danger">
+				<div class="modal-header">
+					<h5 class="modal-title" id="modal-error-title">Modal title</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body" id="modal-error-body">
+					<p id="modal-error-message"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<!-- モーダルウィンドウ: 情報 (Bootstrap 用) -->
+	<div class="modal fade" id="modal-info" tabindex="-1" role="dialog" aria-labelledby="modal-info-title" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="modal-info-title">Modal title</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body" id="modal-info-body">
+					<p id="modal-info-message"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- モーダルウィンドウ: ローディング (Bootstrap 用) -->
+	<div class="modal fade" id="modal-loading" tabindex="-1" role="dialog" aria-labelledby="modal-loading-title"
+	 data-backdrop="static">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-body" id="modal-loading-body">
+					<p>
+						<i class="fas fa-spinner animation"></i>
+						<span id="modal-loading-message"></span>
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+
+</html>

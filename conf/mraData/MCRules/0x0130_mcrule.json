@@ -1,0 +1,65 @@
+{
+  "eoj": "0x0130",
+  "properties": [
+    {
+      "epc": "0x80",
+      "action": "DEL"
+    },
+    {
+      "epc": "0x8F",
+      "action": "DEL"
+    },
+    {
+      "epc": "0x96",
+      "data": {
+        "$ref": "#/definitions/number_0-15359minute"
+      }
+    },
+    {
+      "epc": "0x94",
+      "data": {
+        "type": "object",
+        "properties": [
+          {
+            "shortName": "timeBased",
+            "element": {
+              "type": "boolean"
+            }
+          },
+          {
+            "shortName": "relatimeTimeBased",
+            "element": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "epc": "0x92",
+      "data": {
+        "$ref": "#/definitions/number_0-15359minute"
+      }
+    },
+    {
+      "epc": "0x90",
+      "data": {
+        "type": "object",
+        "properties": [
+          {
+            "shortName": "timeBased",
+            "element": {
+              "type": "boolean"
+            }
+          },
+          {
+            "shortName": "relatimeTimeBased",
+            "element": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

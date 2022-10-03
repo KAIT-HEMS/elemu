@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>ECHONET Lite Emulator</title>
+  <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/lib/fontawesome-free/css/all.css">
+  <link rel="stylesheet" href="elemu.css">
+</head>
+
+<body>
+  <header>
+    <div class="navbar navbar-dark bg-dark shadow-sm">
+      <div class="container d-flex justify-content-between">
+        <a href="#" class="navbar-brand">
+          <h1 id="edt-detail-title" class="h6"></h1>
+        </a>
+      </div>
+    </div>
+  </header>
+  <main role="main">
+    <div class="pt-3">
+      <div class="container">
+        <pre id="edt-detail-json"></pre>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bootstrap -->
+  <script src="/lib/jquery-3.3.1.min.js"></script>
+  <script src="/lib/popper.min.js"></script>
+  <script src="/lib/bootstrap/js/bootstrap.min.js"></script>
+
+  <script>
+    showContents();
+
+    window.addEventListener('focus', () => {
+      setTimeout(() => {
+        showContents();
+      }, 500);
+    }, false);
+
+    function showContents() {
+      let title = window.localStorage.getItem('edt-detail-title');
+      let json = window.localStorage.getItem('edt-detail-json');
+      $('#edt-detail-title').text(title);
+      $('#edt-detail-json').text(json);
+    }
+
+  </script>
+</body>
+
+</html>
