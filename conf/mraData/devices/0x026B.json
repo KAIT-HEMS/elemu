@@ -870,7 +870,7 @@
       },
       "descriptions": {
         "ja": "1回目の「昼間沸き上げシフト時刻」を示す。また、未設定時の値を0x00と定義する",
-        "en": "This property indicates 'daytime heating shift time 1' for the first time. The value when there are no settings shall be defined as 0x00."
+        "en": "This property indicates 'daytime heating shift time' for the first time. The value when there are no settings shall be defined as 0x00."
       },
       "data": {
         "oneOf": [
@@ -1130,8 +1130,8 @@
         "inf": "optional"
       },
       "descriptions": {
-        "ja": "1回目の「昼間沸き上げシフト時刻」を示す。また、未設定時の値を0x00と定義する",
-        "en": "This property indicates 'daytime heating shift time 1' for the first time The value when no setting shall be defined as 0x00."
+        "ja": "2回目の「昼間沸き上げシフト時刻」を示す。また、未設定時の値を0x00と定義する",
+        "en": "This property indicates 'daytime heating shift time' for the second time. The value when no setting shall be defined as 0x00."
       },
       "data": {
         "oneOf": [
@@ -1564,7 +1564,7 @@
             "elementName": {
               "ja": "基点日時：月",
               "en": "Base date and time: Month"
-            },  
+            },
             "shortName": "month",
             "element": {
               "$ref": "#/definitions/number_1-12"
@@ -1574,7 +1574,7 @@
             "elementName": {
               "ja": "基点日時：日",
               "en": "Base date and time: Day"
-            },  
+            },
             "shortName": "day",
             "element": {
               "$ref": "#/definitions/number_1-31"
@@ -1584,7 +1584,7 @@
             "elementName": {
               "ja": "基点日時：時",
               "en": "Base date and time: Hour"
-            },  
+            },
             "shortName": "hour",
             "element": {
               "$ref": "#/definitions/number_0-23"
@@ -1594,7 +1594,7 @@
             "elementName": {
               "ja": "１時間単位の余剰電力量予測値",
               "en": "Surplus power prediction value in units of 1 hour"
-            },  
+            },
             "shortName": "surplusEnergyPredictionValue",
             "element": {
               "type": "array",
@@ -2094,7 +2094,7 @@
         "type": "state",
         "size": 1,
         "enum": [
-            {
+          {
             "edt": "0x41",
             "name": "true",
             "descriptions": {

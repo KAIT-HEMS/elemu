@@ -317,7 +317,7 @@
         "ja": "自動運転時間設定値",
         "en": "Duration of Automatic operation setting"
       },
-      "shortName": "tergetAutomaticOprationTime",
+      "shortName": "targetAutomaticOeprationTime",
       "accessRule": {
         "get": "optional",
         "set": "optional",
@@ -489,7 +489,7 @@
         "ja": "風呂追い炊き動作設定",
         "en": "Bath additional boil-up operation setting"
       },
-      "shortName": "tergetBathAdditionalBoilupOperation",
+      "shortName": "targetBathAdditionalBoilupOperation",
       "accessRule": {
         "get": "optional",
         "set": "optional",
@@ -838,7 +838,7 @@
         "ja": "給湯保温ONタイマ予約設定",
         "en": "Hot water warmer ON timer reservation setting"
       },
-      "shortName": "hotWaterWarmerONTimerReservationSetting",
+      "shortName": "hotWaterWarmerOnTimerReservationSetting",
       "accessRule": {
         "get": "optional",
         "set": "optional",
@@ -862,7 +862,7 @@
         "ja": "給湯保温ONタイマ時刻設定値",
         "en": "Set value of hot water warmer ON timer time"
       },
-      "shortName": "tergetHotWaterWarmerONTimerTime",
+      "shortName": "targetHotWaterWarmerOnTimerTime",
       "accessRule": {
         "get": "optional",
         "set": "optional",

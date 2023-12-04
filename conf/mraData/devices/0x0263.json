@@ -306,9 +306,9 @@
         "ja": "開度レベルを％で指定",
         "en": "Used to specify the degree-of-opening in %."
       },
-			"data": {
-				"$ref": "#/definitions/number_0-100percent"
-			}
+      "data": {
+        "$ref": "#/definitions/number_0-100percent"
+      }
     },
     {
       "epc": "0xE2",
@@ -331,7 +331,7 @@
         "en": "Blind angle"
       },
       "data": {
-				"$ref": "#/definitions/number_0-180degree"
+        "$ref": "#/definitions/number_0-180degree"
       }
     },
     {
@@ -379,7 +379,7 @@
         "en": "Locks or unlocks an electric lock."
       },
       "data": {
-				"$ref": "#/definitions/state_Lock-Unlock_4142"
+        "$ref": "#/definitions/state_Lock-Unlock_4142"
       }
     },
     {

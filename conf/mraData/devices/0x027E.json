@@ -1967,6 +1967,81 @@
       }
     },
     {
+      "epc": "0xE1",
+      "validRelease": {
+        "from": "Q",
+        "to": "latest"
+      },
+      "propertyName": {
+        "ja": "運転動作状態",
+        "en": "Working operation status"
+      },
+      "shortName": "workingOperationStatus",
+      "accessRule": {
+        "get": "optional",
+        "set": "notApplicable",
+        "inf": "required"
+      },
+      "descriptions": {
+        "ja": "電気自動車充放電器の動作状態を示す。本プロパティ搭載時、「充電状態」、「放電状態」、「待機状態もしくは停止状態」の各運転動作状態は必須とする",
+        "en": "This property indicates the operating status of an electric vehicle charger/discharger. If this property is implemented, charge, discharge and at least one of standby and idle are required to be implemented as property values."
+      },
+      "data": {
+        "type": "state",
+        "size": 1,
+        "enum": [
+          {
+            "edt": "0x42",
+            "name": "charge",
+            "descriptions": {
+              "ja": "充電",
+              "en": "Charge"
+            }
+          },
+          {
+            "edt": "0x43",
+            "name": "discharge",
+            "descriptions": {
+              "ja": "放電",
+              "en": "Discharge"
+            }
+          },
+          {
+            "edt": "0x44",
+            "name": "standby",
+            "descriptions": {
+              "ja": "待機",
+              "en": "Standby"
+            }
+          },
+          {
+            "edt": "0x47",
+            "name": "idle",
+            "descriptions": {
+              "ja": "停止",
+              "en": "Idle"
+            }
+          },
+          {
+            "edt": "0x48",
+            "name": "preparation",
+            "descriptions": {
+              "ja": "準備",
+              "en": "Preparation"
+            }
+          },
+          {
+            "edt": "0x40",
+            "name": "other",
+            "descriptions": {
+              "ja": "その他",
+              "en": "Other"
+            }
+          }
+        ]
+      }
+    },
+    {
       "epc": "0xE2",
       "validRelease": {
         "from": "D",

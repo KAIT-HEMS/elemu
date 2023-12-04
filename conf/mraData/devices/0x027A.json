@@ -196,7 +196,7 @@
         "ja": "温水温設定2設定可能最大レベル",
         "en": "Warm water temperature setting 2 Maximum allowable setting level"
       },
-      "shortName": "wormWaterTemperatue2MaximumLevel",
+      "shortName": "warmWaterTemperatue2MaximumLevel",
       "accessRule": {
         "get": "optional",
         "set": "optional",

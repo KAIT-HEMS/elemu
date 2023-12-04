@@ -354,7 +354,8 @@
         "en": "Specified in ASCII code"
       },
       "data": {
-        "$ref": "#/definitions/raw_1-12"      },
+        "$ref": "#/definitions/raw_1-12"
+      },
       "note": {
         "ja": "(各メーカ毎に規定)",
         "en": "(Assigned by each manufacturer)"
@@ -424,7 +425,7 @@
       },
       "propertyName": {
         "ja": "管理機器登録情報更新年月日",
-        "en": "Registerd information renewal date of the device to be controlled"
+        "en": "Registered information renewal date of the device to be controlled"
       },
       "shortName": "renewalDate",
       "accessRule": {
@@ -452,7 +453,7 @@
       },
       "propertyName": {
         "ja": "管理対象機器登録情報更新年月日",
-        "en": "Registerd information renewal date of the device to be controlled"
+        "en": "Registered information renewal date of the device to be controlled"
       },
       "shortName": "renewalDate",
       "accessRule": {
@@ -480,7 +481,7 @@
       },
       "propertyName": {
         "ja": "管理機器登録情報更新バージョン情報",
-        "en": "Registerd information renewal version information of the device to be controlled"
+        "en": "Registered information renewal version information of the device to be controlled"
       },
       "shortName": "renewalVersionInformation",
       "accessRule": {
@@ -504,7 +505,7 @@
       },
       "propertyName": {
         "ja": "管理対象機器登録情報更新バージョン情報",
-        "en": "Registerd information renewal version information of the device to be controlled"
+        "en": "Registered information renewal version information of the device to be controlled"
       },
       "shortName": "renewalVersionInformation",
       "accessRule": {

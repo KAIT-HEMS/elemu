@@ -18,6 +18,34 @@
     {
       "epc": "0xE2",
       "action": "DEL"
+    },
+    {
+      "epc": "0xE7",
+      "data": {
+        "type": "array",
+        "itemSize": 4,
+        "minItems": 48,
+        "maxItems": 48,
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/number_0-999999999m3NoMax",
+              "coefficient": [
+                "0xE1"
+              ],
+              "overflowCode": false,
+              "underflowCode": false
+            },
+            {
+              "$ref": "#/definitions/state_NoData_FFFFFFFE"
+            }
+          ]
+        }
+      },
+      "note": {
+        "ja": "EPC=0xE1の値を乗算済みの値",
+        "en": "This value is already multipled by the value of EPC=0xE1."
+      }
     }
   ]
 }

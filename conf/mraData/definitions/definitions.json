@@ -466,6 +466,12 @@
       "maximum": 999999999,
       "unit": "m3"
     },
+    "number_0-999999999m3NoMax": {
+      "type": "number",
+      "format": "uint32",
+      "minimum": 0,
+      "unit": "m3"
+    },
     "number_0-999999.999kWh": {
       "type": "number",
       "format": "uint32",
@@ -481,6 +487,13 @@
       "maximum": 999999999,
       "unit": "m3",
       "multiple": 0.001
+    },
+    "number_0-999999999kWh": {
+      "type": "number",
+      "format": "uint32",
+      "minimum": 0,
+      "maximum": 999999999,
+      "unit": "kWh"
     },
     "number_0-4294967293": {
       "type": "number",
@@ -900,7 +913,7 @@
       "enum": [
         {
           "edt": "0x00",
-          "name": "none",
+          "name": "noSetting",
           "descriptions": {
             "ja": "設定なし",
             "en": "No setting"
@@ -2330,6 +2343,20 @@
         }
       ]
     },
+    "state_initial_FFFF": {
+      "type": "state",
+      "size": 2,
+      "enum": [
+        {
+            "edt": "0xFFFF",
+            "name": "initialValue",
+            "descriptions": {
+              "ja": "初期値(未設定)",
+              "en": "initial value (not set)"
+            }
+        }
+      ]
+    },
     "state4bitmap_WoCtrl-WCtrl_00-01": {
       "type": "state",
       "size": 0,
@@ -2601,6 +2628,11 @@
       "type": "raw",
       "minSize": 6,
       "maxSize": 6
+    },
+    "raw_7": {
+      "type": "raw",
+      "minSize": 7,
+      "maxSize": 7
     },
     "raw_8": {
       "type": "raw",

@@ -438,7 +438,7 @@
               "ja": "積算有効電力量",
               "en": "Cumulative amount of active electric energy"
             },
-            "shortName": "electricEnergy",
+            "shortName": "activeElectricEnergy",
             "element": {
               "oneOf": [
                 {

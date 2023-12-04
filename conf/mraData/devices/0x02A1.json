@@ -31,7 +31,7 @@
         "en": "This property indicates the rated charge capacity of an electric vehicle charger in W."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999999W"
+        "$ref": "#/definitions/number_0-999999999W"
       }
     },
     {
@@ -397,7 +397,7 @@
         "en": "This property indicates the chargeable capacity of a vehicle battery connected to an electric vehicle charger in 'Wh'."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999999Wh"
+        "$ref": "#/definitions/number_0-999999999Wh"
       },
       "remark": {
         "ja": "脚注参照",
@@ -425,7 +425,7 @@
         "en": "This property indicates the remaining chargeable capacity of a vehicle battery connected to an electric vehicle charger in 'Wh'."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999999Wh"
+        "$ref": "#/definitions/number_0-999999999Wh"
       },
       "remark": {
         "ja": "脚注参照",
@@ -453,7 +453,7 @@
         "en": "This property indicates the capacity of a vehicle-mounted battery of an electric vehicle connected to an electric vehicle charger in 'Wh'."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999999Wh"
+        "$ref": "#/definitions/number_0-999999999Wh"
       },
       "remark": {
         "ja": "脚注参照",
@@ -481,7 +481,7 @@
         "en": "This property indicates the normal rated voltage of an electric vehicle charger in V."
       },
       "data": {
-				"$ref": "#/definitions/number_0-32766V"
+        "$ref": "#/definitions/number_0-32766V"
       }
     },
     {
@@ -529,7 +529,7 @@
         "en": "This property indicates the cumulative amount of charging electric energy in units of 0.001kWh."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999.999kWh",
+        "$ref": "#/definitions/number_0-999999.999kWh",
         "overflowCode": false,
         "underflowCode": false
       }
@@ -642,7 +642,7 @@
         "en": "This property indicates the remaining stored electricity of a vehicle-mounted battery of an electric vehicle connected to an electric vehicle charger in 'Wh'."
       },
       "data": {
-				"$ref": "#/definitions/number_0-999999999Wh"
+        "$ref": "#/definitions/number_0-999999999Wh"
       },
       "remark": {
         "ja": "脚注参照",

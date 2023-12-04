@@ -352,7 +352,7 @@
                     "elementName": {
                       "ja": "R相",
                       "en": "R phase"
-                    },        
+                    },
                     "shortName": "rPhase",
                     "element": {
                       "oneOf": [
