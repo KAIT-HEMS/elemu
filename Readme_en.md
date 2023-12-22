@@ -1,6 +1,6 @@
 # ECHONET Lite Device Emulator
 
-Kanagawa Institute of Technology, Smart House Research Center 2022.01.05
+Kanagawa Institute of Technology, Smart House Research Center 2023.12.18
 
 ## Revision history  
 
@@ -12,6 +12,8 @@ Date | Version  | Description
 2019.12.22 | V20191222 | Fixed a following bug<br>Controller(0x05FF) does not display detailed information of discovered devices, when a device return a manufacture code that is not registered in the table.
 2020.06.09 | V20191222 | Update Device Description to 3.1.6r3_sub to support Release M
 2022.01.05 | V20220105 | Change to MRA from Device Description(\*1)</br>Add a function to disable internal clock for a time-escalated emulation(\*2)
+2022.10.03 | V1.0.0 | - Updated property value of EPC:0x82 from "A" (0x41) to "a" (0x61) in case of Release A</br>- Removed "O" from options of Release Version at Register a new EOJ screen</br>- Added a method to launch this program by "npm start"
+2023.12.18 | V1.1.0 | - Updated MRA to V1.2.0 that supports Appendix Release Q rev.1
 
 (\*1) Device Description data is created and maintained by KAIT. This data was transfered to ECHONET Consortium in 2021. After some updates and modifications of the data structure and data itself, ECHONET Consortium released the data as [Machine Readable Appendix (MRA)](https://echonet.jp/spec_g/#standard-08) on Dec. 1st 2021.
 
