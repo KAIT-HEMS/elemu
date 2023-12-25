@@ -1,6 +1,6 @@
 {
   "name": "elemu",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "ECHONET Lite 機器エミュレーター",
   "main": "index.js",
   "directories": {
