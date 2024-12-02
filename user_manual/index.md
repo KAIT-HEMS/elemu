@@ -1,6 +1,6 @@
 EL エミュレータ ユーザーマニュアル
 ===============
-2022-10-03
+2024-11-26
 
 ---------------------------------------
 ## 目次
@@ -20,36 +20,13 @@ EL エミュレータ ユーザーマニュアル
 
 ### 依存関係
 
-本エミュレーターは node.js 上で動作します。また、いくつかの node モジュールに依存しています。
+本エミュレーターは Node.js 上で動作します。また、いくつかの Node モジュールに依存しています。
 
-* [Node.js](https://nodejs.org/en/) v12 以上
+* [Node.js](https://nodejs.org/en/)
 * [express](http://expressjs.com/)
 * [ws](https://github.com/websockets/ws)
 
-### OS のアップデート
-
-Raspberry Pi 4 Model B+ 上の [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) を例に環境セットアップ手順を説明します。以下の通り、事前に Raspbian のパッケージをアップデートしておいてください：
-
-```
-$ sudo apt-get update
-$ sudo apt-get dist-upgrade
-$ sudo apt-get upgrade -y
-$ sudo reboot
-```
-
-### Node.js 本体のインストール
-
-```
-$ curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-$ sudo apt-get -y install nodejs
-```
-
-以上で node 本体のインストールが完了します。以下のコマンドを実行して、バージョンが表示されることを確認してください。
-
-```
-$ node -v
-v16.13.1
-```
+[Node.js 公式サイト](https://nodejs.org/en/)の指示に従って Node.js の LTS 版 をご利用のホストにインストールしておいてください。
 
 ### 本エミュレーターの設置
 
@@ -65,6 +42,12 @@ $ npm install
 ```
 
 以上で、本エミュレーターを動作させるための環境構築は完了です。
+
+### Windows でご利用になる場合の注意点
+
+ネットワーク プロファイルが「パブリック ネットワーク」に設定されている場合、ECHONET Lite パケットの創出に失敗して本エミュレータが終了してしまいます。事前にネットワーク プロファイルを「プライベート ネットワーク」に変更してからご利用ください。
+
+もし「プライベート ネットワーク」に設定を変更してもご利用になれない場合は、Windows セキュリティの設定でファイアーウォールを一時的に無効にしてください。
 
 ---------------------------------------
 ## <a id="startup-emulator">EL エミュレータの起動</a>

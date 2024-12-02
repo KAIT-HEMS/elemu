@@ -341,21 +341,41 @@
         "en": "Describes the fault."
       },
       "data": {
-        "$ref": "#/definitions/raw_2"
-      },
-      "remark": {
-        "ja": "Appendixの2.5章 異常内容プロパティ参照",
-        "en": "See Chapter 2.5 'Fault Description' Property of the Appendix."
+        "$ref": "#/definitions/state_for_epc89"
       }
     },
     {
       "epc": "0x8A",
       "validRelease": {
         "from": "A",
-        "to": "latest"
+        "to": "Q"
       },
       "propertyName": {
         "ja": "メーカコード",
+        "en": "manufacturer code"
+      },
+      "shortName": "manufacturer",
+      "accessRule": {
+        "get": "required",
+        "set": "notApplicable",
+        "inf": "optional"
+      },
+      "descriptions": {
+        "ja": "3バイトで指定",
+        "en": "3-byte manufacturer code"
+      },
+      "data": {
+        "$ref": "#/definitions/raw_3"
+      }
+    },
+    {
+      "epc": "0x8A",
+      "validRelease": {
+        "from": "R",
+        "to": "latest"
+      },
+      "propertyName": {
+        "ja": "会員ID/メーカコード",
         "en": "Manufacturer code"
       },
       "shortName": "manufacturer",

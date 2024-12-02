@@ -11,34 +11,6 @@
   "shortName": "drElectricEnergyMeter",
   "elProperties": [
     {
-      "epc": "0x98",
-      "validRelease": {
-        "from": "Q",
-        "to": "latest"
-      },
-      "propertyName": {
-        "ja": "現在年月日設定",
-        "en": "Current date setting"
-      },
-      "shortName": "currentDate",
-      "accessRule": {
-        "get": "required_c",
-        "set": "optional",
-        "inf": "optional"
-      },
-      "descriptions": {
-        "ja": "現在年月日YYYY：MM：DD",
-        "en": "Current date (YYYY: MM: DD format)"
-      },
-      "data": {
-        "type": "date"
-      },
-      "remark": {
-        "ja": "積算電力量計測値履歴を保持する分散型電源電力量メータは搭載を必須とする。",
-        "en": "Distributed generator's electric energy meters that retain historical data of measured cumulative amounts of electric energy must implement this property."
-      }
-    },
-    {
       "epc": "0xD0",
       "validRelease": {
         "from": "Q",
@@ -473,7 +445,7 @@
         "en": "This property indicates cumulative amounts of electric energy in decimal (9 digits)."
       },
       "data": {
-        "$ref": "#/definitions/number_0-99999999kWh",
+        "$ref": "#/definitions/number_0-999999999kWh",
         "coefficient": [
           "0xD4"
         ]
@@ -542,7 +514,7 @@
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "#/definitions/number_0-99999999kWh",
+                    "$ref": "#/definitions/number_0-999999999kWh",
                     "coefficient": [
                       "0xD4"
                     ]
@@ -582,7 +554,7 @@
         "en": "This property indicates cumulative amounts of electric energy in decimal (9 digits)."
       },
       "data": {
-        "$ref": "#/definitions/number_0-99999999kWh",
+        "$ref": "#/definitions/number_0-999999999kWh",
         "coefficient": [
           "0xD4"
         ]
@@ -651,7 +623,7 @@
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "#/definitions/number_0-99999999kWh",
+                    "$ref": "#/definitions/number_0-999999999kWh",
                     "coefficient": [
                       "0xD4"
                     ]
@@ -693,7 +665,7 @@
       "data": {
         "oneOf": [
           {
-            "$ref": "#/definitions/number_0-99999999kWh",
+            "$ref": "#/definitions/number_0-999999999kWh",
             "coefficient": [
               "0xD4"
             ]
@@ -767,7 +739,7 @@
               "items": {
                 "oneOf": [
                   {
-                    "$ref": "#/definitions/number_0-99999999kWh",
+                    "$ref": "#/definitions/number_0-999999999kWh",
                     "coefficient": [
                       "0xD4"
                     ]
@@ -828,7 +800,7 @@
             "element": {
               "oneOf": [
                 {
-                  "$ref": "#/definitions/number_0-99999999kWh",
+                  "$ref": "#/definitions/number_0-999999999kWh",
                   "coefficient": [
                     "0xD4"
                   ]
@@ -888,7 +860,7 @@
             "element": {
               "oneOf": [
                 {
-                  "$ref": "#/definitions/number_0-99999999kWh",
+                  "$ref": "#/definitions/number_0-999999999kWh",
                   "coefficient": [
                     "0xD4"
                   ]
@@ -948,7 +920,7 @@
             "element": {
               "oneOf": [
                 {
-                  "$ref": "#/definitions/number_0-99999999kWh",
+                  "$ref": "#/definitions/number_0-999999999kWh",
                   "coefficient": [
                     "0xD4"
                   ]

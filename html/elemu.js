@@ -663,6 +663,7 @@ Elemu.prototype.changePowerStatus = function (state) {
 	this.modalLoadingShow();
 
 	this._webapi.setPowerStatus({ powerStatus: state }).then((res) => {
+		this.app_bind_data['powerStatus'] = res['data']['powerStatus'];
 		// モーダルウィンドウ閉じる
 		this.modalLoadingClose();
 	}).catch((error) => {
@@ -810,7 +811,9 @@ Elemu.prototype.packetMonitorShowPacketInList = function (o) {
 	this.components_bind_data['packet-monitor']['packet_list'].push(pkt);
 
 	if ($('#packet-list-wrapper')[0]) {
-		$('#packet-list-wrapper').animate({ scrollTop: $('#packet-list-wrapper')[0].scrollHeight }, 'fast');
+		//$('#packet-list-wrapper').animate({ scrollTop: $('#packet-list-wrapper')[0].scrollHeight }, 'fast');
+		//$('#packet-list-wrapper').css({ scrollTop: $('#packet-list-wrapper')[0].scrollHeight });
+		$('#packet-list-wrapper')[0].scrollTop = $('#packet-list-wrapper')[0].scrollHeight;
 	}
 	this.packet_no++;
 };
@@ -1277,7 +1280,10 @@ Elemu.prototype.confSubmitConfig = function () {
 		"inf_res_wait_msec": parseInt(d['inf_res_wait_msec'], 10),
 		"epc_data_setting_time_msec": parseInt(d['epc_data_setting_time_msec'], 10),
 		"instance_announce_interval_sec": parseInt(d['instance_announce_interval_sec'], 10),
-		"property_announce_interval_sec": parseInt(d['property_announce_interval_sec'], 10)
+		"property_announce_interval_sec": parseInt(d['property_announce_interval_sec'], 10),
+		"request_timeout_msec": parseInt(d['request_timeout_msec'], 10),
+		"request_interval_msec": parseInt(d['request_interval_msec'], 10),
+		"request_retry_limit": parseInt(d['request_retry_limit'], 10)
 	};
 
 	// 設定保存
