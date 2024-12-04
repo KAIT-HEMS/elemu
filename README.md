@@ -1,6 +1,6 @@
 # ECHONET Lite 機器エミュレータ
 
-神奈川工科大学スマートハウス研究センター 2024.12.01
+神奈川工科大学スマートハウス研究センター 2024.12.04
 
 ## Revision history
 
@@ -14,7 +14,7 @@ Date | Version  | Description
 2022.01.05 | V20220105 | Change to MRA from Device Description(\*1)</br>Add a function to disable internal clock for a time-escalated emulation(\*2)
 2022.10.03 | V1.0.0 | - Updated property value of EPC:0x82 from "A" (0x41) to "a" (0x61) in case of Release A</br>- Removed "O" from options of Release Version at Register a new EOJ screen</br>- Added a method to launch this program by "npm start"
 2023.12.18 | V1.1.0 | - Updated MRA to V1.2.0 that supports Appendix Release Q rev.1
-2024.12.01 | V1.2.0 | - Updated MRA to V1.3.0 that supports Appendix Release R rev.2<br>- improved performance
+2024.12.04 | V1.2.0 | - Updated MRA to V1.3.0 that supports Appendix Release R rev.2<br>- Improved device discovery performance<br>- Ignored EDT values if the ESV is "0x62: Get" in the "Send a Packet" widget<br>- Added an option that filters some packets in the "Packet Monitor" widget<br>- Added a pause button in the "Packet Monitor" widget
 
 (\*1) Device Description data is created and maintained by KAIT. This data was transfered to ECHONET Consortium in 2021. After some updates and modifications of the data structure and data itself, ECHONET Consortium released the data as [Machine Readable Appendix (MRA)](https://echonet.jp/spec_g/#standard-08) on Dec. 1st 2021.
 

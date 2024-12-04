@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<title>ECHONET Lite Emulator</title>
 	<link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css">
-	<link rel="stylesheet" href="/lib/fontawesome-free/css/all.css">
+	<link rel="stylesheet" href="/lib/fontawesome-free/css/all.min.css">
 	<link rel="stylesheet" href="elemu.css">
 </head>
 
@@ -114,7 +114,7 @@
 						<span v-if="lang === 'ja'">デバイスオブジェクトインスタンス</span>
 						<span v-if="lang === 'en'">Device Object Instances</span>
 					</h2>
-					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#eoj-panel-body">
+					<a class="btn btn-sm float-right pt-0 pb-0" data-toggle="collapse" data-target="#eoj-panel-body">
 						<i class="fas fa-plus" hidden></i>
 						<i class="fas fa-minus"></i>
 					</a>
@@ -413,7 +413,7 @@
 						<span v-if="lang === 'ja'">リモートデバイス</span>
 						<span v-if="lang === 'en'">Remote Devices</span>
 					</h2>
-					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#remote-device-list-body">
+					<a class="btn btn-sm float-right pt-0 pb-0" data-toggle="collapse" data-target="#remote-device-list-body">
 						<i class="fas fa-plus" hidden></i>
 						<i class="fas fa-minus"></i>
 					</a>
@@ -482,7 +482,7 @@
 						<span v-if="lang === 'ja'">パケット送信</span>
 						<span v-if="lang === 'en'">Send a Packet</span>
 					</h2>
-					<a class="btn btn-sm float-right" data-toggle="collapse" data-target="#send-packet-body">
+					<a class="btn btn-sm float-right pt-0 pb-0" data-toggle="collapse" data-target="#send-packet-body">
 						<i class="fas fa-plus" hidden></i>
 						<i class="fas fa-minus"></i>
 					</a>
@@ -736,7 +736,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-1" v-model="packet.edt_1" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-1" v-model="packet.edt_1" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]"   v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -760,7 +760,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-2" v-model="packet.edt_2" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-2" v-model="packet.edt_2" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -784,7 +784,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-3" v-model="packet.edt_3" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-3" v-model="packet.edt_3" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -808,7 +808,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-4" v-model="packet.edt_4" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-4" v-model="packet.edt_4" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -832,7 +832,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-5" v-model="packet.edt_5" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-5" v-model="packet.edt_5" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -856,7 +856,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-6" v-model="packet.edt_6" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-6" v-model="packet.edt_6" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -880,7 +880,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-7" v-model="packet.edt_7" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-7" v-model="packet.edt_7" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -904,7 +904,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-8" v-model="packet.edt_8" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-8" v-model="packet.edt_8" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -928,7 +928,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-9" v-model="packet.edt_9" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-9" v-model="packet.edt_9" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -952,7 +952,7 @@
 											<i class="fas fa-info-circle"></i>
 										</div>
 									</div>
-									<input type="text" class="form-control form-control-sm" id="send-packet-edt-10" v-model="packet.edt_10" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]">
+									<input type="text" class="form-control form-control-sm" id="send-packet-edt-10" v-model="packet.edt_10" v-bind:placeholder="[ lang === 'ja' ? '16 進数表記 (例: 0F238A)' : '(e,g,. 0F238A)' ]" v-bind:disabled="edt_disabled">
 								</div>
 							</div>
 						</div>
@@ -980,10 +980,27 @@
 						<span v-if="lang === 'en'">Packet Monitor</span>
 					</h2>
 					<div class="d-inline-block float-right">
-						<a class="btn btn-sm" v-on:click="clearPacketList">
+						<label class="m-0 mr-2">
+							<input type="checkbox" value="true" v-model="filter1" class="align-middle">
+							<small v-if="lang === 'ja'" class="align-middle">ESV:62 の受信 (RX) と ESV:72 の送信 (TX) を非表示</small>
+							<small v-if="lang === 'en'" class="align-middle">Hide ESV:62 RX and ESV:72 TX packets</small>
+						</label>
+
+						<a class="btn btn-sm pt-0 pb-0" v-on:click="togglePlayPause">
+							<span v-if="lang === 'ja'">
+								<i class="fas fa-circle-play" title="モニター再開" v-if="paused === true"></i>
+								<i class="fas fa-circle-pause" title="モニター停止" v-if="paused === false"></i>
+							</span>
+							<span v-if="lang === 'en'">
+								<i class="fas fa-circle-play" title="Start monitoring" v-if="paused === true"></i>
+								<i class="fas fa-circle-pause" title="Pause monitoring" v-if="paused === false"></i>
+							</span>
+						</a>
+
+						<a class="btn btn-sm pt-0 pb-0" v-on:click="clearPacketList">
 							<i class="fas fa-trash-alt"></i>
 						</a>
-						<a class="btn btn-sm" data-toggle="collapse" data-target="#packet-monitor-body">
+						<a class="btn btn-sm pt-0 pb-0" data-toggle="collapse" data-target="#packet-monitor-body">
 							<i class="fas fa-plus" hidden></i>
 							<i class="fas fa-minus"></i>
 						</a>

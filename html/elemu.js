@@ -80,11 +80,14 @@ function Elemu() {
 				edt_9: '',
 				epc_10: '',
 				edt_10: ''
-			}
+			},
+			edt_disabled: true
 		},
 		'packet-monitor': {
 			lang: '',
-			packet_list: []
+			packet_list: [],
+			filter1: false,
+			paused: false
 		},
 		'packet-detail': {
 			hidden: true,
@@ -289,7 +292,7 @@ Elemu.prototype.initViews = function () {
 							return this.components_bind_data['send-packet'];
 						},
 						methods: {
-							// SEOJ/DEOJ のプルダウンが変更されたときの処理 (EPC リストを取得)
+							// SEOJ/DEOJ, ESV のプルダウンが変更されたときの処理 (EPC リストを取得)
 							updateEpcList: this.sendPacketUpdateEpcList.bind(this),
 							// 送信ボタンが押されたときの処理
 							sendPacket: this.sendPacketExec.bind(this),
@@ -309,7 +312,9 @@ Elemu.prototype.initViews = function () {
 							// パケット一覧から矢印キーが押されたときの処理
 							upDownList: this.packetMonitorUpDownList.bind(this),
 							// パケット一覧クリアアイコンがクリックされたときの処理
-							clearPacketList: this.packetMonitorClearPacketList.bind(this)
+							clearPacketList: this.packetMonitorClearPacketList.bind(this),
+							// モニター停止・再開アイコンがクリックされたときの処理
+							togglePlayPause: this.packetMonitorTogglePlayPause.bind(this)
 						},
 						components: {
 							// パケット詳細表示の Vue コンポーネント
@@ -794,6 +799,12 @@ Elemu.prototype.initWs = function () {
 // パケットの一覧表示
 //  WebSocket のイベントにより呼び出される
 Elemu.prototype.packetMonitorShowPacketInList = function (o) {
+	// モニター停止フラグをチェック
+	const bind_data = this.components_bind_data['packet-monitor'];
+	if(bind_data['paused'] === true) {
+		return;
+	}
+
 	// パケット送受信イベント
 	if (o['data']['packet']['result'] !== 0) {
 		return;
@@ -808,13 +819,25 @@ Elemu.prototype.packetMonitorShowPacketInList = function (o) {
 		address: data['address'],
 		hex: data['packet']['data']['hex']
 	};
-	this.components_bind_data['packet-monitor']['packet_list'].push(pkt);
 
-	if ($('#packet-list-wrapper')[0]) {
-		//$('#packet-list-wrapper').animate({ scrollTop: $('#packet-list-wrapper')[0].scrollHeight }, 'fast');
-		//$('#packet-list-wrapper').css({ scrollTop: $('#packet-list-wrapper')[0].scrollHeight });
-		$('#packet-list-wrapper')[0].scrollTop = $('#packet-list-wrapper')[0].scrollHeight;
+	let to_be_filtered = false;
+
+	if(bind_data['filter1'] === true) {
+		const esv = data['packet']['data']['data']['esv']['hex'];
+		const dir = data['direction'];
+
+		if((esv === '62' && dir === 'RX') || (esv === '72' && dir === 'TX')) {
+			to_be_filtered = true;
+		}
 	}
+
+	if(to_be_filtered === false) {
+		bind_data['packet_list'].push(pkt);
+		if ($('#packet-list-wrapper')[0]) {
+			$('#packet-list-wrapper')[0].scrollTop = $('#packet-list-wrapper')[0].scrollHeight;
+		}
+	}
+
 	this.packet_no++;
 };
 
@@ -879,6 +902,14 @@ Elemu.prototype.packetMonitorClearPacketList = function (event) {
 	this.packets = {};
 	this.active_packet_id = '';
 };
+
+// モニター停止・再開モニター停止・再開
+Elemu.prototype.packetMonitorTogglePlayPause = function (event) {
+	const bind_data = this.components_bind_data['packet-monitor'];
+	const paused = bind_data['paused'];
+	bind_data['paused'] = !paused;
+};
+
 
 /* --------------------------------------------------------------
 * ホーム画面のデバイスオブジェクトインスタンスの関連メソッド
@@ -1045,6 +1076,12 @@ Elemu.prototype.sendPacketUpdateEpcList = function (event) {
 	let dcode = packet['deoj']['class_code'];
 	let esv = packet['esv'];
 
+	if(esv === '62') {
+		bind_data['edt_disabled'] = true;
+	} else {
+		bind_data['edt_disabled'] = false;
+	}
+
 	let epc_num_max = 10;
 
 	if (!scode || !dcode || !esv) {
@@ -1153,6 +1190,9 @@ Elemu.prototype.sendPacketExec = function (event) {
 			if (!epc) {
 				error = new Error('EPC-' + i + ' is required.');
 				break;
+			}
+			if(esv === '62') {
+				edt = '';
 			}
 			prop_list.push({
 				epc: epc,
