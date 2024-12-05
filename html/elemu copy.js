@@ -314,9 +314,7 @@ Elemu.prototype.initViews = function () {
 							// パケット一覧クリアアイコンがクリックされたときの処理
 							clearPacketList: this.packetMonitorClearPacketList.bind(this),
 							// モニター停止・再開アイコンがクリックされたときの処理
-							togglePlayPause: this.packetMonitorTogglePlayPause.bind(this),
-							// 「ESV:62 の受信 (RX) と ESV:72 の送信 (TX) を非表示」がクリックされたときの処理
-							setFilter1: this.packetMonitorSetFilter1.bind(this)
+							togglePlayPause: this.packetMonitorTogglePlayPause.bind(this)
 						},
 						components: {
 							// パケット詳細表示の Vue コンポーネント
@@ -801,7 +799,11 @@ Elemu.prototype.initWs = function () {
 // パケットの一覧表示
 //  WebSocket のイベントにより呼び出される
 Elemu.prototype.packetMonitorShowPacketInList = function (o) {
+	// モニター停止フラグをチェック
 	const bind_data = this.components_bind_data['packet-monitor'];
+	if(bind_data['paused'] === true) {
+		return;
+	}
 
 	// パケット送受信イベント
 	if (o['data']['packet']['result'] !== 0) {
@@ -815,23 +817,25 @@ Elemu.prototype.packetMonitorShowPacketInList = function (o) {
 		id: packet_id,
 		direction: data['direction'],
 		address: data['address'],
-		hex: data['packet']['data']['hex'],
-		paused: bind_data['paused'],
-		filter1: false,
-		filter1_hide: false
+		hex: data['packet']['data']['hex']
 	};
 
-	const esv = data['packet']['data']['data']['esv']['hex'];
-	const dir = data['direction'];
+	let to_be_filtered = false;
 
-	if ((esv === '62' && dir === 'RX') || (esv === '72' && dir === 'TX')) {
-		pkt['filter1'] = true;
-		pkt['filter1_hide'] = bind_data['filter1'];
+	if(bind_data['filter1'] === true) {
+		const esv = data['packet']['data']['data']['esv']['hex'];
+		const dir = data['direction'];
+
+		if((esv === '62' && dir === 'RX') || (esv === '72' && dir === 'TX')) {
+			to_be_filtered = true;
+		}
 	}
 
-	bind_data['packet_list'].push(pkt);
-	if ($('#packet-list-wrapper')[0]) {
-		$('#packet-list-wrapper')[0].scrollTop = $('#packet-list-wrapper')[0].scrollHeight;
+	if(to_be_filtered === false) {
+		bind_data['packet_list'].push(pkt);
+		if ($('#packet-list-wrapper')[0]) {
+			$('#packet-list-wrapper')[0].scrollTop = $('#packet-list-wrapper')[0].scrollHeight;
+		}
 	}
 
 	this.packet_no++;
@@ -904,25 +908,7 @@ Elemu.prototype.packetMonitorTogglePlayPause = function (event) {
 	const bind_data = this.components_bind_data['packet-monitor'];
 	const paused = bind_data['paused'];
 	bind_data['paused'] = !paused;
-
-	if (bind_data['paused'] === false) {
-		for (const pkt of bind_data['packet_list']) {
-			pkt.paused = false;
-		}
-	}
 };
-
-// 「ESV:62 の受信 (RX) と ESV:72 の送信 (TX) を非表示」がクリックされたときの処理
-Elemu.prototype.packetMonitorSetFilter1 = function (event) {
-	const bind_data = this.components_bind_data['packet-monitor'];
-	const checked = event.target.checked;
-	for (const pkt of bind_data['packet_list']) {
-		if (pkt['filter1'] === true) {
-			pkt['filter1_hide'] = checked;
-		}
-	}
-};
-
 
 
 /* --------------------------------------------------------------
@@ -1090,7 +1076,7 @@ Elemu.prototype.sendPacketUpdateEpcList = function (event) {
 	let dcode = packet['deoj']['class_code'];
 	let esv = packet['esv'];
 
-	if (esv === '62') {
+	if(esv === '62') {
 		bind_data['edt_disabled'] = true;
 	} else {
 		bind_data['edt_disabled'] = false;
@@ -1205,7 +1191,7 @@ Elemu.prototype.sendPacketExec = function (event) {
 				error = new Error('EPC-' + i + ' is required.');
 				break;
 			}
-			if (esv === '62') {
+			if(esv === '62') {
 				edt = '';
 			}
 			prop_list.push({
@@ -1440,7 +1426,7 @@ Elemu.prototype.addEojExec = function () {
 			en: 'Select an instance number.'
 		});
 		return;
-		//} else if (!/^0[1-9]$/.test(instance)) {
+	//} else if (!/^0[1-9]$/.test(instance)) {
 	} else if (!/^\d{1,3}$/.test(instance)) {
 		this.modalErrorShow({
 			ja: 'インスタンス番号の値が不正です。',

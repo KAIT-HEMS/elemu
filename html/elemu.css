@@ -138,6 +138,15 @@ code.coefficient {
 #packet-list li span.col3 {
 	width: 10em;
 }
+
+#packet-list li.paused {
+	display: none;
+}
+
+#packet-list li.filter1_hide {
+	display: none;
+}
+
 #packet-detail-wrapper {
 	padding: 0.5em 1em;
 	border-top: 1px solid #cccccc;

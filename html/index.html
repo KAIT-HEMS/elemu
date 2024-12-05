@@ -981,7 +981,7 @@
 					</h2>
 					<div class="d-inline-block float-right">
 						<label class="m-0 mr-2">
-							<input type="checkbox" value="true" v-model="filter1" class="align-middle">
+							<input type="checkbox" value="true" v-model="filter1" v-on:click="setFilter1" class="align-middle">
 							<small v-if="lang === 'ja'" class="align-middle">ESV:62 の受信 (RX) と ESV:72 の送信 (TX) を非表示</small>
 							<small v-if="lang === 'en'" class="align-middle">Hide ESV:62 RX and ESV:72 TX packets</small>
 						</label>
@@ -1009,7 +1009,7 @@
 				<div class="card-body collapse show" id="packet-monitor-body">
 					<div id="packet-list-wrapper">
 						<ul class="list-group" id="packet-list" v-on:keyup.stop v-on:keydown.stop>
-							<li v-for="packet in packet_list" class="list-group-item" v-bind:id="packet.id" tabindex="0"  v-on:focus="showPacketDetail" v-on:keydown="upDownList">
+							<li v-for="packet in packet_list" class="list-group-item" :class="{ paused: packet.paused, filter1: packet.filter1, filter1_hide: packet.filter1_hide }" v-bind:id="packet.id" tabindex="0"  v-on:focus="showPacketDetail" v-on:keydown="upDownList">
 								<span class="col1">{{ packet.no }}</span>
 								<span class="col2">{{ packet.direction }}</span>
 								<span class="col3">{{ packet.address }}</span>
