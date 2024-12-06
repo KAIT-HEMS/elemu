@@ -1,0 +1,1929 @@
+swagger: "2.0"
+info:
+  description: "EL エミュレータを操作するための WebAPI 仕様"
+  version: "1.0.0"
+  title: "ELエミュレータ REST API"
+host: "raspberrypi.local:8880"
+#host: "localhost:8880"
+basePath: "/api"
+tags:
+- name: "system"
+  description: "システム設定"
+- name: "deviceDescription"
+  description: "Device Description 管理"
+- name: "manufacturer"
+  description: "メーカー"
+- name: "deviceReset"
+  description: "デバイスリセット"
+- name: "devicePower"
+  description: "デバイス電源操作"
+- name: "deviceEojs"
+  description: "デバイス EOJ 管理"
+- name: "deviceEpcs"
+  description: "デバイス EPC データ管理"
+- name: "devicePacket"
+  description: "パケット操作"
+- name: "controller"
+  description: "コントローラー"
+schemes:
+- "http"
+paths:
+  /system/lang:
+    get:
+      tags:
+      - "system"
+      summary: "システム言語取得"
+      description: "システムに設定されている言語コードを返す。日本語なら `ja` を、英語なら `en` を返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  lang:
+                    type: "string"
+                    enum:
+                    - "ja"
+                    - "en"
+    put:
+      tags:
+      - "system"
+      summary: "システム言語設定"
+      description: "システムに言語を設定する。設定できる値は `ja` (日本語)、または、`en` (英語) のいずれか。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "言語コード"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            lang:
+              type: "string"
+              enum:
+              - "ja"
+              - "en"
+          required:
+            - lang
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設置値"
+                properties:
+                  lang:
+                    type: "string"
+                    enum:
+                    - "ja"
+                    - "en"
+        400:
+          description: "パラメータエラー"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (エラーの数)"
+                minimum: 1
+              code:
+                type: "integer"
+                description: "HTTPステータスコード (400 固定)"
+                enum:
+                - 400
+              message:
+                type: "string"
+                description: "エラーメッセージ (英語)"
+              errs:
+                type: "object"
+                description: "設定値ごとのエラーメッセージを格納したハッシュオブジェクト"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /system/configurations:
+    get:
+      tags:
+      - "system"
+      summary: "システム設定情報取得"
+      description: "システム設定情報を返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  lang:
+                    type: "string"
+                    description: "システム言語コード"
+                    enum:
+                    - "ja"
+                    - "en"
+                  ip_address_version:
+                    type: "integer"
+                    description: "IP アドレスバージョン番号"
+                    enum:
+                    - 4
+                    - 6
+                  packet_log:
+                    type: "boolean"
+                    description: "パケットログ保存フラグ"
+                  packet_log_days:
+                    type: "integer"
+                    description: "パケットログ保存日数"
+                    minimum: 1
+                    maximum: 365
+                  multicast_response_wait_min_msec:
+                    type: "integer"
+                    description: "一斉同報の応答の待ち時間の範囲の最小値 (ミリ秒)"
+                    minimum: 1
+                    maximum: 10000
+                  multicast_response_wait_max_msec:
+                    type: "integer"
+                    description: "一斉同報の応答の待ち時間の範囲の最大値 (ミリ秒)"
+                    minimum: 1
+                    maximum: 10000
+                  get_res_wait_msec:
+                    type: "integer"
+                    description: "Get_Res を返す際の応答時間のデフォルト値 (ミリ秒)"
+                    minimum: 0
+                    maximum: 100000
+                  set_res_wait_msec:
+                    type: "integer"
+                    description: "Set_Res を返す際の応答時間のデフォルト値 (ミリ秒)"
+                    minimum: 0
+                    maximum: 100000
+                  inf_res_wait_msec:
+                    type: "integer"
+                    description: "INF/INFC_Res を返す際の応答時間のデフォルト値 (ミリ秒)"
+                    minimum: 0
+                    maximum: 100000
+                  epc_data_setting_time_msec:
+                    type: "integer"
+                    description: "EPC データセットの時間のデフォルト値 (ミリ秒)"
+                    minimum: 0
+                    maximum: 100000
+    put:
+      tags:
+      - "system"
+      summary: "システム設定情報保存"
+      description: "<p>システム設定情報を保存する。</p><p>設定パラメータはすべてを指定する必要はなく、更新したいパラメータのみを指定しても構わない。</p><p>IP アドレスのバージョン (<code>ip_address_version</code>) が変更された場合は、エミュレーターが内部的に再起動する。それ以外の設定値が変更された場合は、再起動なしに反映される。</p>"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "設定値"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            lang:
+              type: "string"
+              description: "システム言語コード"
+              enum:
+              - "ja"
+              - "en"
+            ip_address_version:
+              type: "integer"
+              description: "IP アドレスバージョン番号"
+              enum:
+              - 4
+              - 6
+            packet_log:
+              type: "boolean"
+              description: "パケットログ保存フラグ"
+            packet_log_days:
+              type: "integer"
+              description: "パケットログ保存日数"
+              minimum: 1
+              maximum: 365
+            multicast_response_wait_min_msec:
+              type: "integer"
+              description: "一斉同報の応答の待ち時間の範囲の最小値 (ミリ秒)"
+              minimum: 1
+              maximum: 10000
+            multicast_response_wait_max_msec:
+              type: "integer"
+              description: "一斉同報の応答の待ち時間の範囲の最大値 (ミリ秒)"
+              minimum: 1
+              maximum: 10000
+            get_res_wait_msec:
+              type: "integer"
+              description: "Get_Res を返す際の応答時間 (ミリ秒)"
+              minimum: 0
+              maximum: 100000
+            set_res_wait_msec:
+              type: "integer"
+              description: "Set_Res を返す際の応答時間 (ミリ秒)"
+              minimum: 0
+              maximum: 100000
+            inf_res_wait_msec:
+              type: "integer"
+              description: "INF/INFC_Res を返す際の応答時間 (ミリ秒)"
+              minimum: 0
+              maximum: 100000
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "保存した設定値"
+                properties:
+                  lang:
+                    type: "string"
+                    description: "システム言語コード"
+                    enum:
+                    - "ja"
+                    - "en"
+                  ip_address_version:
+                    type: "integer"
+                    description: "IP アドレスバージョン番号"
+                    enum:
+                    - 4
+                    - 6
+                  packet_log:
+                    type: "boolean"
+                    description: "パケットログ保存フラグ"
+                  packet_log_days:
+                    type: "integer"
+                    description: "パケットログ保存日数"
+                    minimum: 1
+                    maximum: 365
+                  multicast_response_wait_min_msec:
+                    type: "integer"
+                    description: "一斉同報の応答の待ち時間の範囲の最小値 (ミリ秒)"
+                    minimum: 1
+                    maximum: 10000
+                  multicast_response_wait_max_msec:
+                    type: "integer"
+                    description: "一斉同報の応答の待ち時間の範囲の最大値 (ミリ秒)"
+                    minimum: 1
+                    maximum: 10000
+                  get_res_wait_msec:
+                    type: "integer"
+                    description: "Get_Res を返す際の応答時間 (ミリ秒)"
+                  set_res_wait_msec:
+                    type: "integer"
+                    description: "Set_Res を返す際の応答時間 (ミリ秒)"
+                  inf_res_wait_msec:
+                    type: "integer"
+                    description: "INF/INFC_Res を返す際の応答時間 (ミリ秒)"
+
+        400:
+          description: "パラメータエラー"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (エラーの数)"
+                minimum: 1
+              code:
+                type: "integer"
+                description: "HTTPステータスコード (400 固定)"
+                enum:
+                - 400
+              message:
+                type: "string"
+                description: "エラーメッセージ (英語)"
+              errs:
+                type: "object"
+                description: "設定値ごとのエラーメッセージを格納したハッシュオブジェクト"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /deviceDescriptions:
+    get:
+      tags:
+      - "deviceDescription"
+      summary: "Device Description デバイス一覧取得"
+      description: "ECHONET Lite Device Description からデバイス一覧を返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: ""
+                properties:
+                  deviceList:
+                    type: "array"
+                    description: "デバイス情報のリスト"
+                    items:
+                      type: "object"
+                      description: "デバイス情報"
+                      properties:
+                        eoj:
+                          type: "string"
+                          description: "EOJ"
+                        className:
+                          type: "object"
+                          description: "機器オブジェクト名称"
+                          properties:
+                            ja:
+                              type: "string"
+                              description: "日本語"
+                            en:
+                              type: "string"
+                              description: "英語"
+                        firstRelease:
+                          type: "string"
+                          description: "最初に定義された機器オブジェクト詳細規定のバージョン (例: `J`)"
+
+  /deviceDescriptions/{eoj}:
+    get:
+      tags:
+      - "deviceDescription"
+      summary: "Device Description デバイス情報取得"
+      description: "指定の EOJ に相当する DeviceDescription のデバイス情報を返す。"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "eoj"
+        in: "path"
+        description: "EOJ の 16 進数表記 (例: `013001`, 最後の 2 桁のインスタンスコードは無視されるため、上 4 桁だけでも良い)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{4,6}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: ""
+                properties:
+                  device:
+                    type: "object"
+                    description: "指定のコードに該当するデバイス情報"
+                    properties:
+                      eoj:
+                        type: "string"
+                        description: "EOJ"
+                      className:
+                        type: "object"
+                        description: "機器オブジェクト名称"
+                        properties:
+                          ja:
+                            type: "string"
+                            description: "日本語"
+                          en:
+                            type: "string"
+                            description: "英語"
+                      firstRelease:
+                        type: "string"
+                        description: "最初に定義された機器オブジェクト詳細規定のバージョン (例: `J`)"
+                      elProperties:
+                        type: "array"
+                        description: "EPC 情報のリスト"
+                        items:
+                          type: "object"
+                          description: "EPC 情報 (DeviceDescription と同じ情報)"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+
+  /deviceDescriptions/releases:
+    get:
+      tags:
+      - "deviceDescription"
+      summary: "有効なリリースバージョンのリストを取得"
+      description: "ECHONET Lite 仕様書 Appendix の有効なリリースバージョンを返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: ""
+                properties:
+                  releaseList:
+                    type: "array"
+                    description: "有効なリリースバージョンのリスト"
+                    items:
+                      type: "string"
+                      description: "リリースバージョン (例: `J`)"
+
+  /manufacturers:
+    get:
+      tags:
+      - "manufacturer"
+      summary: "メーカー情報一括取得"
+      description: "メーカーコードとメーカー名のテーブル情報を一括で取得する。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: ""
+                properties:
+                  manufacturerList:
+                    type: "array"
+                    description: "メーカー情報のリスト"
+                    items:
+                      type: "object"
+                      description: "メーカー情報"
+                      properties:
+                        code:
+                          type: "string"
+                          description: "メーカーコード (例: `0000FB`)"
+                        name:
+                          type: "object"
+                          description: "メーカー名"
+                          properties:
+                            ja:
+                              type: "string"
+                              description: "メーカー名 (日本語)"
+                            en:
+                              type: "string"
+                              description: "メーカー名 (英語)"
+
+  /manufacturers/{code}:
+    get:
+      tags:
+      - "manufacturer"
+      summary: "メーカー情報取得"
+      description: "指定のメーカーコードに相当するメーカー情報 (メーカー名) を返す。"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "code"
+        in: "path"
+        description: "メーカーコード (例: `0000FB`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: ""
+                properties:
+                  manufacturer:
+                    type: "object"
+                    description: "メーカー情報"
+                    properties:
+                      code:
+                        type: "string"
+                        description: "メーカーコード (例: `0000FB`)"
+                      name:
+                        type: "object"
+                        description: "メーカー名"
+                        properties:
+                          ja:
+                            type: "string"
+                            description: "メーカー名 (日本語)"
+                          en:
+                            type: "string"
+                            description: "メーカー名 (英語)"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+
+  /device:
+    delete:
+      tags:
+      - "deviceReset"
+      summary: "デバイスリセット"
+      description: "エミュレート中のデバイスの EOJ と EPC データを削除し初期状態にする。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /device/power:
+    get:
+      tags:
+      - "devicePower"
+      summary: "デバイス電源状態取得"
+      description: "エミュレート中のデバイスの電源状態を取得する。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  powerStatus:
+                    type: "boolean"
+                    description: "電源状態"
+    post:
+      tags:
+      - "devicePower"
+      summary: "デバイス電源 ON"
+      description: "エミュレート中のデバイスの電源状態を ON にする。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  powerStatus:
+                    type: "boolean"
+                    description: "電源状態"
+                    enum:
+                    - true
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+    delete:
+      tags:
+      - "devicePower"
+      summary: "デバイス電源 OFF"
+      description: "エミュレート中のデバイスの電源状態を OFF にする。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  powerStatus:
+                    type: "boolean"
+                    description: "電源状態"
+                    enum:
+                    - false
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+
+  /device/eojs:
+    get:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 一覧取得"
+      description: "エミュレートしているデバイス EOJ の一覧と、それぞれの EOJ がサポートする EPC の一覧を取得する。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  eojList:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        eoj:
+                          type: "string"
+                          description: "EOJ"
+                        epc:
+                          type: "array"
+                          items:
+                            type: "string"
+                            description: "サポートする EPC"
+                        release:
+                          type: "string"
+                          description: "リリースバージョン (例: `J`)"
+    put:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 一括登録"
+      description: "エミュレートするデバイス EOJ と、それぞれの EOJ がサポートする EPC の一覧を一括で登録する。\n- 登録 EOJ 情報がすべて上書きされるので注意すること。\n- 処理が完了すると、デバイスは内部的に再起動する。\n- ノードプロファイル  (EOJ: `0x0EF001`) は自動的に登録されるため、指定する必要はない (指定することも可能)。\n- 登録可能なノードプロファイルの EOJ は `0x0EF001` (一般ノード) か `0x0EF002` (送信専用ノード) のいずれか一方のみ。\n- コントローラー (EOJ: `0x05FFXX`) が含まれる場合は、それ以外の EOJ は指定できない。\n- パラメータ `epc` を指定しなければ、適用されるリリースバージョンがサポートするすべての EPC が適用される。\n- パラメータ `epc` を指定すると、`epc` に含まれているかどうかにかかわらず、必須の EPC は自動的にセットされる。(DeviceDescription の `accessRule` にひとつでも `required` がセットされていれば必須 EPC とみなす)\n- パラメータ `release` を指定しなければ、DeviceDescription のリリースバージョンが適用される。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            eojList:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  eoj:
+                    type: "string"
+                    description: "EOJ"
+                    pattern: "^[0-9A-F]{6}$"
+                  epc:
+                    type: "array"
+                    description: "サポートする EPC のリスト (指定がなければ全 EPC が対象になる)"
+                    items:
+                      type: "string"
+                      description: "サポートする EPC"
+                      pattern: "^[0-9A-F]{2}$"
+                  release:
+                    type: "string"
+                    description: "サポートするリリースバージョン (指定がなければ DevcieDescription のリリースバージョンが適用される) (例: `J`)。"
+                required:
+                  - eoj
+          required:
+            - eojList
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                properties:
+                  eojList:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        eoj:
+                          type: "string"
+                          description: "EOJ"
+                        epc:
+                          type: "array"
+                          items:
+                            type: "string"
+                            description: "サポートする EPC"
+                        release:
+                          type: "string"
+                          description: "サポートするリリースバージョン"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+    post:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 追加"
+      description: "エミュレートするデバイス EOJ と、それぞれの EOJ がサポートする EPC を新規に登録する。\n- 処理が完了すると、デバイスは内部的に再起動する。\n- ノードプロファイル (EOJ: `0x0EF0XX`) を指定すると、新規に登録されるのではなく、既存のノードプロファイルを置き換える。\n- コントローラー (EOJ: `0x05FFXX`) を登録する場合は、ノードプロファイルを除くすべての EOJ を事前に削除しておかなければいけない。\n- コントローラー (EOJ: `0x05FFXX`) がすでに登録されている場合は、もう EOJ は追加できない。\n- パラメータ `epc` を指定しなければ、適用されるリリースバージョンがサポートするすべての EPC が適用される。\n- パラメータ `epc` を指定すると、`epc` に含まれているかどうかにかかわらず、必須の EPC は自動的にセットされる。(DeviceDescription の `accessRule` にひとつでも `required` がセットされていれば必須 EPC とみなす)\n- パラメータ `release` を指定しなければ、DeviceDescription のリリースバージョンが適用される。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            eoj:
+              type: "string"
+              description: "EOJ"
+              pattern: "^[0-9A-F]{6}$"
+            epc:
+              type: "array"
+              description: "サポートする EPC のリスト (指定がなければ全 EPC が対象になる)"
+              items:
+                type: "string"
+                description: "サポートする EPC"
+                pattern: "^[0-9A-F]{2}$"
+            release:
+              type: "string"
+              description: "サポートするリリースバージョン (指定がなければ DevcieDescription のリリースバージョンが適用される) (例: `J`)。"
+          required:
+            - eoj
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                properties:
+                  eoj:
+                    type: "string"
+                    description: "EOJ"
+                  epc:
+                    type: "array"
+                    items:
+                      type: "string"
+                      description: "サポートする EPC"
+                  release:
+                    type: "string"
+                    description: "サポートするリリースバージョン"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+
+  /device/eojs/{eoj}:
+    get:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 取得"
+      description: "エミュレートしているデバイス EOJ  がサポートする EPC の一覧を取得する。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  eoj:
+                    type: "string"
+                    description: "EOJ"
+                  epc:
+                    type: "array"
+                    description: "サポートする EPC のリスト"
+                    items:
+                      type: "string"
+                      description: "サポートする EPC の 16 進数表記"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+    put:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 修正"
+      description: "エミュレートするデバイス EOJ 情報を修正する。\n- 処理が完了すると、デバイスは内部的に再起動する。\n- パラメータ `epc` を指定しなければ、適用されるリリースバージョンがサポートするすべての EPC が適用される。\n- パラメータ `epc` を指定すると、`epc` に含まれているかどうかにかかわらず、必須の EPC は自動的にセットされる。(DeviceDescription の `accessRule` にひとつでも `required` がセットされていれば必須 EPC とみなす)\n- パラメータ `release` を指定しなければ、DeviceDescription のリリースバージョンが適用される。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "body"
+        name: "body"
+        required: false
+        schema:
+          type: "object"
+          properties:
+            epc:
+              type: "array"
+              description: "サポートする EPC のリスト (指定がなければ全 EPC が対象になる)"
+              items:
+                type: "string"
+                description: "サポートする EPC"
+                pattern: "^[0-9A-F]{2}$"
+            release:
+              type: "string"
+              description: "サポートするリリースバージョン (指定がなければ DevcieDescription のリリースバージョンが適用される) (例: `J`)。"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                properties:
+                  eoj:
+                    type: "string"
+                    description: "EOJ"
+                  epc:
+                    type: "array"
+                    items:
+                      type: "string"
+                      description: "サポートする EPC"
+                  release:
+                    type: "string"
+                    description: "リリースバージョン"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+    delete:
+      tags:
+      - "deviceEojs"
+      summary: "デバイス EOJ 削除"
+      description: "エミュレートするデバイス EOJ を削除する。\n- 処理が完了すると、デバイスは内部的に再起動する。\n- ノードプロファイル (EOJ: `0x0EF0XX`) は削除できない。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                properties:
+                  eoj:
+                    type: "string"
+                    description: "削除した EOJ コード"
+                  epc:
+                    type: "array"
+                    items:
+                      type: "string"
+                      description: "削除した EOJ がサポートしていた EPC のリスト"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+
+  /device/eojs/{eoj}/epcs:
+    get:
+      tags:
+      - "deviceEpcs"
+      summary: "デバイス EPC データ (EDT) 一括取得"
+      description: "エミュレートしているデバイス EOJ が保持するすべての EPC データ (EDT) を一括で取得する。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                properties:
+                  elProperties:
+                    type: "array"
+                    description: "EPC と EDT の解析結果を表すハッシュオブジェクトのリスト"
+                    items:
+                      type: "object"
+                      properties:
+                        epc:
+                          type: "string"
+                          description: "EPC の 16 進数文字列 (例: `80`)"
+                        propertyName:
+                          type: "object"
+                          description: "EPC 名"
+                          properties:
+                            ja:
+                              type: "string"
+                              description: "日本語"
+                            en:
+                              type: "string"
+                              description: "英語"
+                        edt:
+                          type: "object"
+                          description: "EDT 解析結果"
+                        map:
+                          type: "object"
+                          description: "プロパティマップ"
+                          properties:
+                            get:
+                              type: "boolean"
+                              description: "Getプロパティマップ"
+                            set:
+                              type: "boolean"
+                              description: "Setプロパティマップ"
+                            inf:
+                              type: "boolean"
+                              description: "INFプロパティマップ"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+
+    put:
+      tags:
+      - "deviceEpcs"
+      summary: "デバイス EPC データ (EDT) 一括設定"
+      description: "エミュレートしているデバイス EOJ の EPC データ (EDT) をまとめて設定する。\n- 未知の EPC や不正な EDT を指定してもエラーにはならず無視される。\n- レスポンスの `changed` プロパティに変更が成功した EPC と EDT がセットされる。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            vals:
+              type: "object"
+              description: "設定したい EPC と EDT のハッシュオブジェクト"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  changed:
+                    type: "object"
+                    description: "変更があった EPC と EDT のハッシュオブジェクト"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /device/eojs/{eoj}/epcs/{epc}:
+    get:
+      tags:
+      - "deviceEpcs"
+      summary: "デバイス EPC データ (EDT) 個別取得"
+      description: "エミュレートしているデバイス EOJ が保持する EPC データ (EDT) のうち、指定の EPC のデータを取得する。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "path"
+        name: "epc"
+        description: "EPC の 16 進数表記 (例: `80`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{2}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  elProperty:
+                    type: "object"
+                    description: "EPC と EDT のハッシュオブジェクト"
+                    properties:
+                      epc:
+                        type: "string"
+                        description: "EPC の 16 進数文字列 (例: `80`)"
+                      propertyName:
+                        type: "object"
+                        description: "EPC 名"
+                        properties:
+                          ja:
+                            type: "string"
+                            description: "日本語"
+                          en:
+                            type: "string"
+                            description: "英語"
+                      edt:
+                        type: "object"
+                        description: "EDT 解析結果 (type によって内容が異なる)"
+                      map:
+                        type: "object"
+                        description: "プロパティマップ"
+                        properties:
+                          get:
+                            type: "boolean"
+                            description: "Getプロパティマップ"
+                          set:
+                            type: "boolean"
+                            description: "Setプロパティマップ"
+                          inf:
+                            type: "boolean"
+                            description: "INFプロパティマップ"
+ 
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+
+    put:
+      tags:
+      - "deviceEpcs"
+      summary: "デバイス EPC データ (EDT) 個別設定"
+      description: "エミュレートしているデバイス EOJ が保持する EPC データ (EDT) のうち、指定の EPC のデータを個別に設定する。\n- 不正な EDT を指定してもエラーにはならず無視される。\n- レスポンスの `changed` プロパティに変更が成功した EPC と EDT がセットされる。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "path"
+        name: "epc"
+        description: "EPC の 16 進数表記 (例: `80`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{2}$"
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            edt:
+              type: "string"
+              description: "設定したい EPC のデータ (EDT) を表す 16 進数文字列"
+          required:
+            - edt
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  changed:
+                    type: "object"
+                    description: "変更があった EPC と EDT のハッシュオブジェクト"
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        404:
+          description: "未発見エラー"
+          schema:
+            $ref: "#/definitions/NotFound"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /device/packet:
+    post:
+      tags:
+      - "devicePacket"
+      summary: "EL パケット送信"
+      description: "任意の Echonet Lite パケットを送信する。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            address:
+              type: "string"
+              description: "IP アドレス"
+            packet:
+              type: "object"
+              description: "EL パケット情報"
+              properties:
+                tid:
+                  type: "integer"
+                  description: "TID (指定がなければ自動採番)"
+                seoj:
+                  type: "string"
+                  description: "SEOJ の 16 進数文字列 (例: \"05FF01\")"
+                  pattern: "^[0-9A-F]{6}$"
+                deoj:
+                  type: "string"
+                  description: "DEOJ の 16 進数文字列 (例: \"013001\")"
+                  pattern: "^[0-9A-F]{6}$"
+                esv:
+                  type: "string"
+                  description: "ESV の 16 進数文字列 (例: \"62\")"
+                  enum:
+                  - "60"
+                  - "61"
+                  - "62"
+                  - "63"
+                  - "6E"
+                  - "71"
+                  - "72"
+                  - "73"
+                  - "74"
+                  - "7A"
+                  - "7E"
+                  - "50"
+                  - "51"
+                  - "52"
+                  - "53"
+                  - "5E"
+                properties:
+                  type: "array"
+                  description: "EPC と EDT のペアのリスト"
+                  items:
+                    type: "object"
+                    description: "EPC と EDT のペア"
+                    properties:
+                      epc:
+                        type: "string"
+                        description: "EPC の 16 進数文字列 (例: \"80\")"
+                      edt:
+                        type: "string"
+                        description: "EDT の 16 進数文字列 (ESV が `Get` 等の場合は不要)"
+                    required:
+                      - epc
+              required:
+                - seoj
+                - deoj
+                - esv
+                - properties
+          required:
+            - address
+            - packet
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /controller/remoteDevices:
+    get:
+      tags:
+      - "controller"
+      summary: "発見済みリモートデバイス一覧取得"
+      description: "コントローラーの場合、発見済みのリモートデバイスの情報のリストを返す。コントローラーでない場合は 403 エラーを返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  remoteDeviceList:
+                    type: "array"
+                    description: "リモートデバイスのリスト"
+                    items:
+                      type: "object"
+                      description: "リモートデバイスの情報"
+                      properties:
+                        address:
+                          type: "string"
+                          description: "IP アドレス"
+                        id:
+                          type: "string"
+                          description: "識別番号"
+                        eojList:
+                          type: "array"
+                          description: "EOJ 情報のリスト"
+                          items:
+                            type: "object"
+                            description: "EOJ 情報"
+                            properties:
+                              eoj:
+                                type: "string"
+                                description: "EOJ"
+                              className:
+                                type: "object"
+                                description: "インスタンスのクラス名"
+                                properties:
+                                  ja:
+                                    type: "string"
+                                    description: "インスタンスのクラス名 (日本語)"
+                                  en:
+                                    type: "string"
+                                    description: "インスタンスのクラス名 (英語)"
+                              manufacturer:
+                                type: "object"
+                                description: "メーカー情報"
+                                properties:
+                                  code:
+                                    type: "string"
+                                    description: "メーカーコード"
+                                  name:
+                                    type: "object"
+                                    description: "メーカー名"
+                                    properties:
+                                     ja:
+                                       type: "string"
+                                       description: "メーカー名 (日本語)"
+                                     en:
+                                       type: "string"
+                                       description: "メーカー名 (英語)"
+                              elProperties:
+                                type: "array"
+                                description: "EPC 情報のリスト"
+                                items:
+                                  type: "object"
+                                  description: "EPC 情報"
+                                  properties:
+                                    epc:
+                                      type: "string"
+                                      description: "EPC"
+                                    propertyName:
+                                      type: "object"
+                                      description: "プロパティ名 (不明なプロパティの場合は null)"
+                                      properties:
+                                        ja:
+                                          type: "string"
+                                          description: "プロパティ名 (日本語)"
+                                        en:
+                                          type: "string"
+                                          description: "プロパティ名 (英語)"
+                                    map:
+                                      type: "object"
+                                      description: "プロパティマップ情報"
+                                      properties:
+                                        get:
+                                          type: "boolean"
+                                          description: "Get サポートフラグ"
+                                        set:
+                                          type: "boolean"
+                                          description: "Set サポートフラグ"
+                                        inf:
+                                          type: "boolean"
+                                          description: "Inf サポートフラグ"
+                                    edt:
+                                      type: "object"
+                                      description: "取得済みの EDT 解析結果情報 (未取得の場合は null)"
+                                  
+        403:
+          description: "許可されていないリクエスト"
+          schema:
+            $ref: "#/definitions/Forbidden"
+
+    delete:
+      tags:
+      - "controller"
+      summary: "発見済みリモートデバイスクリア"
+      description: "コントローラーの場合、発見済みのリモートデバイスをクリアします。コントローラーでない場合は 403 エラーを返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+
+        403:
+          description: "許可されていないリクエスト"
+          schema:
+            $ref: "#/definitions/Forbidden"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /controller/remoteDevices/{address}/eojs/{eoj}/epcs/{epc}:
+    get:
+      tags:
+      - "controller"
+      summary: "リモートデバイスの EPC データ (EDT) の個別取得"
+      description: "リモートデバイスの IP アドレス、EOJ、EPC を指定して、該当のリモートデバイスに対して該当の EPC のデータを問い合わせる。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "address"
+        description: "リモートデバイスの IP アドレス (例: `192.168.0.3`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-Fa-f.:]+$"
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "path"
+        name: "epc"
+        description: "EPC の 16 進数表記 (例: `80`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{2}$"
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "設定値"
+                properties:
+                  elProperty:
+                    type: "object"
+                    description: "EPC 情報 (パケット解析結果のプロパティ部分)"
+
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        403:
+          description: "許可されていないリクエスト"
+          schema:
+            $ref: "#/definitions/Forbidden"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+    put:
+      tags:
+      - "controller"
+      summary: "リモートデバイスの EPC データ (EDT) の個別設定"
+      description: "リモートデバイスの IP アドレス、EOJ、EPC を指定して、該当のリモートデバイスに対して該当の EPC のデータを設定する。データ設定が成功すると、該当のリモートデバイスに対して Get を送り設定情報を取得する。この API は、その Get の結果を返す。"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "address"
+        description: "リモートデバイスの IP アドレス (例: `192.168.0.3`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-Fa-f.:]+$"
+      - in: "path"
+        name: "eoj"
+        description: "EOJ の 16 進数表記 (例: `013001`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{6}$"
+      - in: "path"
+        name: "epc"
+        description: "EPC の 16 進数表記 (例: `80`)"
+        required: true
+        type: "string"
+        pattern: "^[0-9A-F]{2}$"
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            edt:
+              type: "string"
+              description: "設定したい EPC のデータ (EDT) を表す 16 進数文字列"
+          required:
+            - edt
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+              data:
+                type: "object"
+                description: "空のオブジェクト"
+
+        400:
+          description: "パラメータエラー"
+          schema:
+            $ref: "#/definitions/BadRequest"
+        403:
+          description: "許可されていないリクエスト"
+          schema:
+            $ref: "#/definitions/Forbidden"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+  /controller/discovery:
+    post:
+      tags:
+      - "controller"
+      summary: "デバイス発見パケットを送信"
+      description: "コントローラーの場合、デバイス発見パケットを送信する。このメソッドはパケットを送信するだけで、発見したデバイス情報を返すわけではない。コントローラーでない場合は 403 エラーを返す。"
+      produces:
+      - "application/json"
+      parameters: []
+      responses:
+        200:
+          description: "成功"
+          schema:
+            type: "object"
+            properties:
+              result:
+                type: "integer"
+                description: "結果コード (0 固定)"
+                enum:
+                - 0
+              code:
+                type: "integer"
+                description: "HTTP ステータスコード (200 固定)"
+                enum:
+                - 200
+        403:
+          description: "許可されていないリクエスト"
+          schema:
+            $ref: "#/definitions/Forbidden"
+        500:
+          description: "システムエラー"
+          schema:
+            $ref: "#/definitions/SymtemError"
+
+definitions:
+
+  BadRequest:
+    type: "object"
+    properties:
+      result:
+        type: "integer"
+        description: "結果コード (1 固定)"
+        enum:
+        - 1
+      code:
+        type: "integer"
+        description: "HTTPステータスコード (400 固定)"
+        enum:
+        - 400
+      message:
+        type: "string"
+        description: "エラーメッセージ (英語)"
+
+  Forbidden:
+    type: "object"
+    properties:
+      result:
+        type: "integer"
+        description: "結果コード (1 固定)"
+        enum:
+        - 1
+      code:
+        type: "integer"
+        description: "HTTPステータスコード (403 固定)"
+        enum:
+        - 403
+      message:
+        type: "string"
+        description: "エラーメッセージ (英語)"
+
+  NotFound:
+    type: "object"
+    properties:
+      result:
+        type: "integer"
+        description: "結果コード (1 固定)"
+        enum:
+        - 1
+      code:
+        type: "integer"
+        description: "HTTPステータスコード (404 固定)"
+        enum:
+        - 404
+      message:
+        type: "string"
+        description: "エラーメッセージ (英語)"
+
+  SymtemError:
+    type: "object"
+    properties:
+      result:
+        type: "integer"
+        description: "結果コード (1 以上の整数)"
+        minimum: 1
+      code:
+        type: "integer"
+        description: "HTTPステータスコード (500 固定)"
+        enum:
+        - 500
+      message:
+        type: "string"
+        description: "エラーメッセージ (英語)"
+  

@@ -14,6 +14,7 @@ EL エミュレータ ユーザーマニュアル
 * [パケット送信](#packet-sender)
 * [パケットモニター](#packet-monitor)
 * [コントローラー](#controller)
+* [プロパティ値を Web API で設定する機能](#webapi)
 
 ---------------------------------------
 ## <a id="setup-environment">環境セットアップ</a>
@@ -266,6 +267,171 @@ EPC が選択されると、EDT 入力欄の先頭に (i) アイコンが表示�
 「プロパティデータ一括取得」ボタンを押すと、取得可能なすべてのプロパティ値を該当のリモートデバイスに対して Get して、その結果を表示します。
 
 各プロパティの行にあるダウンロードアイコンをクリックすると、該当のプロパティ値のみを該当のリモートデバイスに対して Get して、その結果を表示します。
+
+
+---------------------------------------
+## <a id="webapi">プロパティ値を Web API で設定する機能</a>
+
+本エミュレーターでは、エミュレートするインスタンスのプロパティ値の読み取りと書き込みに関して、Web API を提供しています。以下、[curl](https://curl.se/) コマンドの実行例とレスポンス例を掲載します。また、レスポンスの JSON を成形表示するために [jq](https://jqlang.github.io/jq/) コマンドを使ってます。 
+
+なお、以下のリクエスト先のホストは `localhost` となっていますが、外部からでもアクセス可能です。その場合は、`localhost` の部分をホストコンピューターの IP アドレスやローカルホスト名に書き換えてください。
+
+### デバイス EPC データ (EDT) 一括取得
+
+次の例は、家庭用エアコン (EOJ: `0x013001`) のすべてのプロパティ値を取得します。
+
+**curl**
+```
+curl -sSv -X GET \
+  http://localhost:8880/api/device/eojs/013001/epcs | jq
+```
+
+**レスポンス**
+```json
+{
+  "method": "GET",
+  "path": "/api/device/eojs/013001/epcs",
+  "params": {},
+  "result": 0,
+  "code": 200,
+  "data": {
+    "elProperties": [
+      {
+        "epc": "80",
+        "propertyName": {
+          "ja": "動作状態",
+          "en": "Operation status"
+        },
+        "edt": {
+          "hex": "30",
+          "data": {
+            "type": "state",
+            "state": {
+              "ja": "ON",
+              "en": "On"
+            }
+          }
+        },
+        "map": {
+          "get": true,
+          "set": true,
+          "inf": true
+        }
+      },
+      ...
+    ]
+  }
+}
+```
+
+### デバイス EPC データ (EDT) 一括設定
+
+次の例は、家庭用エアコン (EOJ: `0x013001`) の動作状態 (EPC: `0x80`) と室内温度計測値 (EPC: `0xBB`) のプロパティ値をまとめてセットします。 
+
+**curl**
+```
+curl -sSv -X PUT \
+  -H 'Content-Type:application/json' \
+  -d '{ "vals": { "80": "30", "BB": "25"  } }' \
+  http://localhost:8880/api/device/eojs/013001/epcs | jq
+```
+
+**レスポンス**
+```json
+{
+  "method": "PUT",
+  "path": "/api/device/eojs/013001/epcs",
+  "params": {
+    "vals": {
+      "80": "30",
+      "BB": "25"
+    }
+  },
+  "result": 0,
+  "code": 200,
+  "data": {
+    "changed": {
+      "BB": "25"
+    }
+  }
+}
+```
+
+### デバイス EPC データ (EDT) 個別取得
+
+次の例は、家庭用エアコン (EOJ: `0x013001`) の動作状態 (EPC: `0x80`) のプロパティ値を取得します。
+
+**curl**
+```
+curl -sSv -X GET \
+  http://localhost:8880/api/device/eojs/013001/epcs/80 | jq
+```
+
+**レスポンス**
+```json
+{
+  "method": "GET",
+  "path": "/api/device/eojs/013001/epcs/80",
+  "params": {},
+  "result": 0,
+  "code": 200,
+  "data": {
+    "elProperty": {
+      "epc": "80",
+      "propertyName": {
+        "ja": "動作状態",
+        "en": "Operation status"
+      },
+      "edt": {
+        "hex": "30",
+        "data": {
+          "type": "state",
+          "state": {
+            "ja": "ON",
+            "en": "On"
+          }
+        }
+      },
+      "map": {
+        "get": true,
+        "set": true,
+        "inf": true
+      }
+    }
+  }
+}
+```
+
+### デバイス EPC データ (EDT) 個別設定
+
+次の例は、家庭用エアコン (EOJ: `0x013001`) の動作状態 (EPC: `0x80`) のプロパティ値をセットします。 
+
+**curl**
+```
+curl -sSv -X PUT \
+  -H 'Content-Type:application/json' \
+  -d '{ "edt": "31"  }' \
+  http://localhost:8880/api/device/eojs/013001/epcs/80 | jq
+```
+
+**レスポンス**
+```json
+{
+  "method": "PUT",
+  "path": "/api/device/eojs/013001/epcs/80",
+  "params": {
+    "edt": "31"
+  },
+  "result": 0,
+  "code": 200,
+  "data": {
+    "changed": {
+      "80": "31"
+    }
+  }
+}
+```
+
 
 -----
 以上
